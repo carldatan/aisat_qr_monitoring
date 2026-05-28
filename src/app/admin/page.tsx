@@ -9,13 +9,27 @@ import { Input } from '@/components/ui/Input'
 import { DataTable } from '@/components/ui/DataTable'
 import { QRScanner } from '@/components/scanner/QRScanner'
 import {
-	approveRequest, disapproveRequest, returnItemsByUser, returnItemsPartial,
+	approveRequest, disapproveRequest, returnItemsPartial,
 	addEquipmentBatch, addHistoryLog, addScannedLibrary, updateProfileRole, deleteProfile,
 } from '@/lib/db'
 import { formatDateTime } from '@/lib/utils'
 import type { Equipment, Profile } from '@/types'
 
-interface ReturnItem { baseName: string; count: number; returnQty: number }
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ReturnItem {
+	baseName: string
+	totalBorrowed: number   // total units this user has borrowed of this item
+	returnQty: number       // how many admin is marking as returned
+}
+
+interface ReturnSession {
+	username: string
+	fullName: string
+	idNumber: string
+	items: ReturnItem[]
+	triggeredBy: 'qr' | 'manual'
+}
 
 export default function AdminPage() {
 	const router = useRouter()
@@ -24,24 +38,23 @@ export default function AdminPage() {
 	const profiles = useAppStore(s => s.profiles)
 	const refreshAll = useAppStore(s => s.refreshAll)
 
-	// Redirect non-admins
 	useEffect(() => {
 		if (profile && profile.role !== 'admin') router.replace('/dashboard')
 	}, [profile, router])
 
-	// QR return flow
-	const [pendingReturnUsername, setPendingReturnUsername] = useState<string | null>(null)
-	const [returnItems, setReturnItems] = useState<ReturnItem[]>([])
+	// ─── Return session state ─────────────────────────────────────────────────
+	const [returnSession, setReturnSession] = useState<ReturnSession | null>(null)
+	const [confirmLoading, setConfirmLoading] = useState(false)
 
-	// Inventory add
+	// ─── Inventory add ────────────────────────────────────────────────────────
 	const [eqName, setEqName] = useState('')
 	const [eqQty, setEqQty] = useState('')
 	const [addLoading, setAddLoading] = useState(false)
 
-	// Bulk return
-	const [bulkReturnUser, setBulkReturnUser] = useState('')
+	// ─── Manual return — selected user ───────────────────────────────────────
+	const [manualReturnUser, setManualReturnUser] = useState('')
 
-	// ─── Derived ─────────────────────────────────────────────────────────────────
+	// ─── Derived data ─────────────────────────────────────────────────────────
 
 	const pendingGroups = useMemo(() => {
 		const map = new Map<string, { username: string; itemName: string; count: number }>()
@@ -77,80 +90,139 @@ export default function AdminPage() {
 		return Array.from(map.values())
 	}, [equipment])
 
-	// ─── QR Scan Handler ──────────────────────────────────────────────────────────
+	// ─── Helpers ──────────────────────────────────────────────────────────────
 
-	const handleScan = (text: string) => {
-		if (!text.startsWith('BATCH|')) return
-		const username = text.split('|')[1]
-		const targetProfile = profiles.find(p => p.username === username)
-		if (!targetProfile) { alert('Unknown user in QR code.'); return }
-
-		const items = equipment.filter(e => e.borrower_username === username && e.status === 'Borrowed')
-		if (items.length === 0) { alert(`No borrowed items for @${username}.`); return }
+	/**
+	 * Build a ReturnSession from a username by aggregating their borrowed items.
+	 */
+	const buildReturnSession = (username: string, triggeredBy: 'qr' | 'manual'): ReturnSession | null => {
+		const borrowed = equipment.filter(
+			e => e.borrower_username === username && e.status === 'Borrowed'
+		)
+		if (borrowed.length === 0) return null
 
 		const itemMap = new Map<string, number>()
-		items.forEach(e => itemMap.set(e.base_name, (itemMap.get(e.base_name) ?? 0) + 1))
+		borrowed.forEach(e => itemMap.set(e.base_name, (itemMap.get(e.base_name) ?? 0) + 1))
 
-		const returnItemsList: ReturnItem[] = Array.from(itemMap.entries()).map(([baseName, count]) => ({
-			baseName, count, returnQty: count,
+		const items: ReturnItem[] = Array.from(itemMap.entries()).map(([baseName, totalBorrowed]) => ({
+			baseName,
+			totalBorrowed,
+			returnQty: totalBorrowed,   // default: return all
 		}))
 
-		setPendingReturnUsername(username)
-		setReturnItems(returnItemsList)
+		const borrowerProfile = profiles.find(p => p.username === username)
+
+		return {
+			username,
+			fullName: borrowerProfile?.full_name ?? username,
+			idNumber: borrowerProfile?.id_number ?? '',
+			items,
+			triggeredBy,
+		}
 	}
 
+	const updateReturnQty = (index: number, newQty: number) => {
+		if (!returnSession) return
+		setReturnSession(prev => {
+			if (!prev) return prev
+			const updated = prev.items.map((item, i) =>
+				i === index
+					? { ...item, returnQty: Math.max(0, Math.min(newQty, item.totalBorrowed)) }
+					: item
+			)
+			return { ...prev, items: updated }
+		})
+	}
+
+	const totalReturning = returnSession?.items.reduce((sum, i) => sum + i.returnQty, 0) ?? 0
+
+	// ─── QR Scan Handler ──────────────────────────────────────────────────────
+
+	const handleScan = (text: string) => {
+		if (!text.startsWith('BATCH|')) {
+			alert('Invalid QR code format.')
+			return
+		}
+		const username = text.split('|')[1]
+		if (!profiles.find(p => p.username === username)) {
+			alert('Unknown user in QR code.')
+			return
+		}
+
+		const session = buildReturnSession(username, 'qr')
+		if (!session) {
+			alert(`@${username} has no currently borrowed items.`)
+			return
+		}
+		setReturnSession(session)
+	}
+
+	// ─── Manual Return Handler ────────────────────────────────────────────────
+
+	const handleOpenManualReturn = () => {
+		if (!manualReturnUser) return
+		const session = buildReturnSession(manualReturnUser, 'manual')
+		if (!session) {
+			alert(`@${manualReturnUser} has no currently borrowed items.`)
+			return
+		}
+		setReturnSession(session)
+	}
+
+	// ─── Confirm Return ───────────────────────────────────────────────────────
+
 	const handleConfirmReturn = async () => {
-		if (!pendingReturnUsername || !profile) return
-		const toReturn = returnItems
+		if (!returnSession || !profile) return
+
+		const toReturn = returnSession.items
 			.filter(i => i.returnQty > 0)
 			.map(i => ({ baseName: i.baseName, qty: i.returnQty }))
 
+		if (toReturn.length === 0) {
+			alert('No items selected for return. Set at least one quantity above 0.')
+			return
+		}
+
+		setConfirmLoading(true)
 		try {
-			const total = await returnItemsPartial(pendingReturnUsername, toReturn)
+			const total = await returnItemsPartial(returnSession.username, toReturn)
+
 			if (total > 0) {
-				const returnee = profiles.find(p => p.username === pendingReturnUsername)
 				await addScannedLibrary({
-					studentName: returnee?.full_name ?? pendingReturnUsername,
-					studentIdNumber: returnee?.id_number ?? '',
+					studentName: returnSession.fullName,
+					studentIdNumber: returnSession.idNumber,
 					itemsCount: total,
 					processedBy: profile.username,
 				})
-				await addHistoryLog(pendingReturnUsername, `${total} Items`, 'QR Return', undefined)
-				alert(`Successfully returned ${total} item(s) for @${pendingReturnUsername}.`)
+				// Log each item separately for a clear audit trail
+				for (const item of toReturn) {
+					await addHistoryLog(
+						returnSession.username,
+						`${item.qty}× ${item.baseName}`,
+						returnSession.triggeredBy === 'qr' ? 'QR Return' : 'Manual Return',
+						undefined
+					)
+				}
+				alert(
+					`✓ Return processed.\n\n` +
+					toReturn.map(i => `  • ${i.qty}× ${i.baseName}`).join('\n') +
+					`\n\nTotal: ${total} item(s) returned for @${returnSession.username}.`
+				)
 			} else {
-				alert('No items returned (all quantities were 0).')
+				alert('No items were returned. Please check quantities.')
 			}
 		} catch (err) {
-			alert('Error processing return.')
+			alert('Error processing return. Please try again.')
 			console.error(err)
 		} finally {
-			setPendingReturnUsername(null)
-			setReturnItems([])
+			setConfirmLoading(false)
+			setReturnSession(null)
+			setManualReturnUser('')
 			await refreshAll()
 		}
 	}
 
-	const handleBulkReturn = async () => {
-		if (!bulkReturnUser || !profile) return
-		try {
-			const count = await returnItemsByUser(bulkReturnUser)
-			const returnee = profiles.find(p => p.username === bulkReturnUser)
-			if (count > 0) {
-				await addScannedLibrary({
-					studentName: returnee?.full_name ?? bulkReturnUser,
-					studentIdNumber: returnee?.id_number ?? '',
-					itemsCount: count,
-					processedBy: profile.username,
-				})
-				await addHistoryLog(bulkReturnUser, `${count} Items`, 'Manual Return')
-				alert(`Returned ${count} items for @${bulkReturnUser}.`)
-			}
-			await refreshAll()
-		} catch (err) {
-			alert('Error processing return.')
-			console.error(err)
-		}
-	}
+	// ─── Other admin actions ──────────────────────────────────────────────────
 
 	const handleApprove = async (username: string, itemName: string) => {
 		try {
@@ -203,73 +275,144 @@ export default function AdminPage() {
 		} catch (err) { console.error(err) }
 	}
 
+	// ─── Render ───────────────────────────────────────────────────────────────
+
 	return (
 		<>
-			{/* QR Scanner */}
+			{/* ── QR Scanner ────────────────────────────────────────────────── */}
 			<Panel>
-				<h3 className="font-bold font-mono text-base mb-4">QR Scanner</h3>
+				<h3 className="font-bold font-mono text-base mb-1">QR Scanner</h3>
+				<p className="text-xs text-muted font-mono mb-4">
+					Scan a student&apos;s return pass to open the return form.
+				</p>
 				<QRScanner onScanSuccess={handleScan} />
 			</Panel>
 
-			{/* Return Form */}
-			{pendingReturnUsername && (
-				<Panel>
-					<div className="flex justify-between items-center mb-3">
-						<h3 className="font-bold font-mono text-base">Return Form</h3>
+			{/* ── Return Form (shown after QR scan OR manual lookup) ─────────── */}
+			{returnSession && (
+				<Panel className="border-2 border-success">
+					{/* Header */}
+					<div className="flex justify-between items-start mb-4">
+						<div>
+							<h3 className="font-bold font-mono text-base text-success">
+								Return Form
+								<span className="ml-2 text-xs font-normal text-muted">
+									({returnSession.triggeredBy === 'qr' ? 'via QR scan' : 'manual lookup'})
+								</span>
+							</h3>
+							<p className="text-sm font-mono mt-1">
+								<span className="font-bold">{returnSession.fullName}</span>
+								{' '}<span className="text-muted">(@{returnSession.username})</span>
+								{returnSession.idNumber && (
+									<span className="ml-2 text-muted text-xs">ID: {returnSession.idNumber}</span>
+								)}
+							</p>
+						</div>
 						<button
-							onClick={() => { setPendingReturnUsername(null); setReturnItems([]) }}
-							className="text-xs font-bold font-mono text-danger border border-danger px-3 py-1.5 rounded hover:bg-red-50"
+							onClick={() => setReturnSession(null)}
+							className="text-xs font-bold font-mono text-danger border border-danger px-3 py-1.5 rounded hover:bg-red-50 transition-colors"
 						>
 							CANCEL
 						</button>
 					</div>
-					<p className="text-xs text-muted font-mono mb-3">
-						Review quantities and click <strong>CONFIRM RETURN</strong> to process.
+
+					{/* Instructions */}
+					<p className="text-xs text-muted font-mono mb-4 p-3 bg-surface rounded border border-border">
+						Adjust the <strong>Return Qty</strong> for each item. Set to <strong>0</strong> to skip an item.
+						The admin is responsible for confirming what was physically handed back.
 					</p>
-					<div className="overflow-x-auto">
+
+					{/* Item table */}
+					<div className="overflow-x-auto mb-4">
 						<table className="w-full text-sm font-mono border-collapse">
 							<thead>
 								<tr>
-									{['Item', 'User', 'Borrowed Qty', 'Return Qty'].map(h => (
-										<th key={h} className="px-3 py-2 border border-gray-100 bg-surface text-left text-gray-500 font-bold text-xs">
+									{['Item', 'Total Borrowed', 'Return Qty', 'Keeping'].map(h => (
+										<th
+											key={h}
+											className="px-3 py-2.5 border border-gray-100 bg-surface text-left text-gray-500 font-bold text-xs"
+										>
 											{h}
 										</th>
 									))}
 								</tr>
 							</thead>
 							<tbody>
-								{returnItems.map((item, i) => (
-									<tr key={i}>
-										<td className="px-3 py-2 border border-gray-100">{item.baseName}</td>
-										<td className="px-3 py-2 border border-gray-100 text-muted">@{pendingReturnUsername}</td>
-										<td className="px-3 py-2 border border-gray-100">{item.count}</td>
-										<td className="px-3 py-2 border border-gray-100">
-											<input
-												type="number"
-												min={0}
-												max={item.count}
-												value={item.returnQty}
-												onChange={e => {
-													const val = Math.min(parseInt(e.target.value) || 0, item.count)
-													setReturnItems(prev =>
-														prev.map((it, idx) => idx === i ? { ...it, returnQty: val } : it)
-													)
-												}}
-												className="w-16 px-2 py-1 border border-border rounded text-center focus:outline-none focus:border-primary"
-											/>
-										</td>
-									</tr>
-								))}
+								{returnSession.items.map((item, i) => {
+									const keeping = item.totalBorrowed - item.returnQty
+									return (
+										<tr key={i} className={item.returnQty === 0 ? 'opacity-50' : ''}>
+											<td className="px-3 py-2.5 border border-gray-100 font-bold">
+												{item.baseName}
+											</td>
+											<td className="px-3 py-2.5 border border-gray-100 text-center">
+												{item.totalBorrowed}
+											</td>
+											<td className="px-3 py-2.5 border border-gray-100">
+												<div className="flex items-center gap-2">
+													<button
+														className="w-7 h-7 rounded border border-border bg-surface hover:bg-gray-100 font-bold text-sm leading-none"
+														onClick={() => updateReturnQty(i, item.returnQty - 1)}
+													>
+														−
+													</button>
+													<input
+														type="number"
+														min={0}
+														max={item.totalBorrowed}
+														value={item.returnQty}
+														onChange={e => updateReturnQty(i, parseInt(e.target.value) || 0)}
+														className="w-14 px-2 py-1 border border-border rounded text-center focus:outline-none focus:border-primary font-mono text-sm"
+													/>
+													<button
+														className="w-7 h-7 rounded border border-border bg-surface hover:bg-gray-100 font-bold text-sm leading-none"
+														onClick={() => updateReturnQty(i, item.returnQty + 1)}
+													>
+														+
+													</button>
+												</div>
+											</td>
+											<td className={`px-3 py-2.5 border border-gray-100 text-center font-bold ${keeping > 0 ? 'text-danger' : 'text-success'}`}>
+												{keeping > 0 ? `${keeping} still out` : '✓ all back'}
+											</td>
+										</tr>
+									)
+								})}
 							</tbody>
+							{/* Summary row */}
+							<tfoot>
+								<tr className="bg-surface">
+									<td className="px-3 py-2 border border-gray-100 font-bold text-xs text-muted" colSpan={1}>
+										TOTAL
+									</td>
+									<td className="px-3 py-2 border border-gray-100 text-center font-bold">
+										{returnSession.items.reduce((s, i) => s + i.totalBorrowed, 0)}
+									</td>
+									<td className="px-3 py-2 border border-gray-100 text-center font-bold text-success">
+										{totalReturning}
+									</td>
+									<td className="px-3 py-2 border border-gray-100 text-center font-bold text-danger">
+										{returnSession.items.reduce((s, i) => s + i.totalBorrowed, 0) - totalReturning} remaining
+									</td>
+								</tr>
+							</tfoot>
 						</table>
 					</div>
-					<Button variant="success" fullWidth className="mt-4" onClick={handleConfirmReturn}>
-						CONFIRM RETURN
+
+					<Button
+						variant="success"
+						fullWidth
+						onClick={handleConfirmReturn}
+						disabled={confirmLoading || totalReturning === 0}
+					>
+						{confirmLoading
+							? 'PROCESSING...'
+							: `CONFIRM RETURN (${totalReturning} item${totalReturning !== 1 ? 's' : ''})`}
 					</Button>
 				</Panel>
 			)}
 
-			{/* Pending Requests */}
+			{/* ── Pending Requests ──────────────────────────────────────────── */}
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">Pending Requests</h3>
 				<DataTable
@@ -296,7 +439,7 @@ export default function AdminPage() {
 				/>
 			</Panel>
 
-			{/* Master Borrowing Database */}
+			{/* ── Master Borrowing Database ─────────────────────────────────── */}
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">Master Borrowing Database</h3>
 				<DataTable
@@ -310,36 +453,62 @@ export default function AdminPage() {
 								<span className="text-xs">{row.borrow_time ? formatDateTime(row.borrow_time) : '--'}</span>
 							),
 						},
+						{
+							header: 'Action',
+							accessor: (row: Equipment) => (
+								<Button
+									size="sm"
+									variant="ghost"
+									className="text-success border-success"
+									onClick={() => {
+										const session = buildReturnSession(row.borrower_username!, 'manual')
+										if (session) setReturnSession(session)
+										else alert('No borrowed items found for this user.')
+									}}
+								>
+									RETURN
+								</Button>
+							),
+						},
 					]}
 					data={borrowedItems}
 					emptyMessage="No items currently borrowed."
 				/>
 			</Panel>
 
-			{/* Return by User */}
+			{/* ── Manual Return Lookup ──────────────────────────────────────── */}
 			<Panel>
-				<h3 className="font-bold font-mono text-base mb-3">Return by User</h3>
+				<h3 className="font-bold font-mono text-base mb-1">Manual Return Lookup</h3>
+				<p className="text-xs text-muted font-mono mb-3">
+					Select a borrower to open the return form without scanning a QR code.
+				</p>
 				<select
-					value={bulkReturnUser}
-					onChange={e => setBulkReturnUser(e.target.value)}
+					value={manualReturnUser}
+					onChange={e => setManualReturnUser(e.target.value)}
 					className="w-full px-3.5 py-3.5 bg-white text-gray-800 border border-border rounded font-mono text-sm mb-3 focus:outline-none focus:border-primary"
 				>
-					<option value="">-- Select Student --</option>
+					<option value="">-- Select Borrower --</option>
 					{activeBorrowers.map(u => {
 						const p = profiles.find(pr => pr.username === u)
+						const itemCount = borrowedItems.filter(e => e.borrower_username === u).length
 						return (
 							<option key={u} value={u}>
-								{p?.full_name ?? u} (@{u})
+								{p?.full_name ?? u} (@{u}) — {itemCount} item{itemCount !== 1 ? 's' : ''}
 							</option>
 						)
 					})}
 				</select>
-				<Button variant="success" fullWidth onClick={handleBulkReturn} disabled={!bulkReturnUser}>
-					RETURN ALL ITEMS BY THIS USER
+				<Button
+					variant="success"
+					fullWidth
+					onClick={handleOpenManualReturn}
+					disabled={!manualReturnUser}
+				>
+					OPEN RETURN FORM
 				</Button>
 			</Panel>
 
-			{/* Inventory Overview */}
+			{/* ── Inventory Overview ────────────────────────────────────────── */}
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">Inventory Overview</h3>
 				<DataTable
@@ -361,7 +530,7 @@ export default function AdminPage() {
 				/>
 			</Panel>
 
-			{/* User Management */}
+			{/* ── User Management ───────────────────────────────────────────── */}
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">User Management</h3>
 				<DataTable
@@ -380,28 +549,34 @@ export default function AdminPage() {
 								return (
 									<div className="flex gap-1">
 										{row.role !== 'admin' && (
-											<Button size="sm" variant="ghost" className="text-success border-success"
-												onClick={() => handleMakeAdmin(row.id, row.full_name)}>
+											<Button
+												size="sm" variant="ghost"
+												className="text-success border-success"
+												onClick={() => handleMakeAdmin(row.id, row.full_name)}
+											>
 												MAKE ADMIN
 											</Button>
 										)}
 										{!isSelf && (
-											<Button size="sm" variant="ghost" className="text-danger border-danger"
-												onClick={() => handleRemoveUser(row.id)}>
+											<Button
+												size="sm" variant="ghost"
+												className="text-danger border-danger"
+												onClick={() => handleRemoveUser(row.id)}
+											>
 												REMOVE
 											</Button>
 										)}
 									</div>
 								)
-							}
-						}
+							},
+						},
 					]}
 					data={profiles}
 					emptyMessage="No users found."
 				/>
 			</Panel>
 
-			{/* Inventory Management */}
+			{/* ── Inventory Management ──────────────────────────────────────── */}
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">Inventory Management</h3>
 				<div className="flex flex-col gap-2.5">
