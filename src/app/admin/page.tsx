@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { addDays, format } from 'date-fns'
 import { useAppStore } from '@/contexts/store'
 import { Panel } from '@/components/ui/Panel'
 import { Button } from '@/components/ui/Button'
@@ -17,7 +18,7 @@ import {
 	adminBorrowItems,
 	returnItemsPartial,
 } from '@/lib/db'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateOnly, formatDateTime } from '@/lib/utils'
 import type { Equipment, EquipmentStatus } from '@/types'
 
 interface ReturnItem {
@@ -54,6 +55,10 @@ const EQUIPMENT_STATUSES: EquipmentStatus[] = [
 ]
 
 const RETURN_QR_PREFIX = 'AISAT_RETURN|'
+
+function getDefaultReturnByDate() {
+	return format(addDays(new Date(), 7), 'yyyy-MM-dd')
+}
 
 async function fileToDataUrl(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -256,6 +261,7 @@ export default function AdminPage() {
 	const [borrowQty, setBorrowQty] = useState('1')
 	const [borrowerName, setBorrowerName] = useState('')
 	const [borrowerIdNumber, setBorrowerIdNumber] = useState('')
+	const [returnByDate, setReturnByDate] = useState(() => getDefaultReturnByDate())
 	const [borrowItemPhoto, setBorrowItemPhoto] = useState('')
 	const [borrowerBorrowPhoto, setBorrowerBorrowPhoto] = useState('')
 	const [returnQrSaved, setReturnQrSaved] = useState(false)
@@ -273,6 +279,7 @@ export default function AdminPage() {
 	const [eqLocation, setEqLocation] = useState('')
 	const [eqStatus, setEqStatus] = useState<EquipmentStatus>('Available')
 	const [addLoading, setAddLoading] = useState(false)
+	const previewReturnByDate = returnByDate || getDefaultReturnByDate()
 
 	useEffect(() => {
 		if (profile && profile.role !== 'admin') {
@@ -439,6 +446,8 @@ export default function AdminPage() {
 		if (!profile) return
 		const qty = parseInt(borrowQty, 10)
 		const normalizedBorrowerId = borrowerIdNumber.trim()
+		const normalizedReturnByDate = returnByDate || getDefaultReturnByDate()
+		const returnByDateIso = new Date(`${normalizedReturnByDate}T23:59:59`).toISOString()
 
 		if (!selectedAvailable || !borrowerName || !normalizedBorrowerId || Number.isNaN(qty) || qty <= 0) {
 			alert('Complete borrower, item, and quantity fields.')
@@ -465,6 +474,7 @@ export default function AdminPage() {
 				lenderUsername: profile.username,
 				itemPhotoUrl: borrowItemPhoto,
 				borrowerPhotoUrl: borrowerBorrowPhoto,
+				returnByDate: returnByDateIso,
 			})
 			await addHistoryLog(
 				normalizedBorrowerId,
@@ -481,6 +491,7 @@ export default function AdminPage() {
 			setBorrowQty('1')
 			setBorrowerName('')
 			setBorrowerIdNumber('')
+			setReturnByDate(getDefaultReturnByDate())
 			setBorrowItemPhoto('')
 			setBorrowerBorrowPhoto('')
 			setReturnQrSaved(false)
@@ -671,11 +682,22 @@ export default function AdminPage() {
 						value={borrowerIdNumber}
 						onChange={event => setBorrowerIdNumber(event.target.value)}
 					/>
+					<Input
+						type="date"
+						label="Return By Date"
+						value={returnByDate}
+						onChange={event => setReturnByDate(event.target.value)}
+					/>
 				</div>
 				{selectedAvailable && (
-					<p className="mt-3 text-xs font-mono text-muted">
-						Category: {selectedAvailable.category || 'Uncategorized'} | Location: {selectedAvailable.location || 'Unassigned'} | Lender: @{profile?.username}
-					</p>
+					<div className="mt-3 space-y-1 text-xs font-mono text-muted">
+						<p>
+							Category: {selectedAvailable.category || 'Uncategorized'} | Location: {selectedAvailable.location || 'Unassigned'} | Lender: @{profile?.username}
+						</p>
+						<p>
+							Default return by: {formatDateOnly(`${previewReturnByDate}T00:00:00`)}
+						</p>
+					</div>
 				)}
 				<div className="grid gap-4 md:grid-cols-2 mt-4">
 					<PhotoInput
@@ -938,6 +960,10 @@ export default function AdminPage() {
 						{
 							header: 'Borrow Date',
 							accessor: (row: Equipment) => row.borrow_time ? formatDateTime(row.borrow_time) : '--',
+						},
+						{
+							header: 'Return By',
+							accessor: (row: Equipment) => row.return_by_date ? formatDateOnly(row.return_by_date) : '--',
 						},
 						{
 							header: 'Lender',

@@ -30,6 +30,7 @@ export interface Equipment {
 	return_item_photo_url: string | null
 	borrower_return_photo_url: string | null
 	borrow_time: string | null
+	return_by_date: string | null
 	return_time: string | null
 	created_at: string
 	updated_at: string

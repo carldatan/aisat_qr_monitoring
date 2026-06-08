@@ -14,6 +14,14 @@ export function formatDateTime(iso: string): string {
 	}
 }
 
+export function formatDateOnly(iso: string): string {
+	try {
+		return format(new Date(iso), 'MM/dd/yyyy')
+	} catch {
+		return iso
+	}
+}
+
 export function groupBy<T>(arr: T[], key: (item: T) => string): Record<string, T[]> {
 	return arr.reduce((acc, item) => {
 		const k = key(item)

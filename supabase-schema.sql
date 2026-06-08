@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
     return_item_photo_url TEXT,
     borrower_return_photo_url TEXT,
     borrow_time         TIMESTAMPTZ,
+    return_by_date      TIMESTAMPTZ,
     return_time         TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -80,6 +81,7 @@ ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_borrow_photo_url 
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_item_photo_url TEXT;
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_return_photo_url TEXT;
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_time TIMESTAMPTZ;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_by_date TIMESTAMPTZ;
 
 DO $$
 BEGIN

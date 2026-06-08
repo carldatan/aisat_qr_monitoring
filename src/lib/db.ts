@@ -78,6 +78,7 @@ export async function addEquipmentBatch(
 		return_item_photo_url: null,
 		borrower_return_photo_url: null,
 		borrow_time: null,
+		return_by_date: null,
 		return_time: null,
 	}))
 	const { error } = await supabase.from('equipment').insert(rows)
@@ -94,6 +95,7 @@ export async function adminBorrowItems(entry: {
 	lenderUsername: string
 	itemPhotoUrl: string
 	borrowerPhotoUrl: string
+	returnByDate: string
 }) {
 	const supabase = createClient()
 	const time = new Date().toISOString()
@@ -129,6 +131,7 @@ export async function adminBorrowItems(entry: {
 			return_item_photo_url: null,
 			borrower_return_photo_url: null,
 			borrow_time: time,
+			return_by_date: entry.returnByDate,
 			return_time: null,
 			updated_at: time,
 		})
@@ -185,7 +188,12 @@ export async function approveRequest(
 	const time = new Date().toISOString()
 	const { error } = await supabase
 		.from('equipment')
-		.update({ status: 'Borrowed', borrow_time: time, updated_at: time })
+		.update({
+			status: 'Borrowed',
+			borrow_time: time,
+			return_by_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+			updated_at: time,
+		})
 		.eq('borrower_username', borrowerUsername)
 		.eq('base_name', itemName)
 		.eq('status', 'Pending')
@@ -204,6 +212,7 @@ export async function disapproveRequest(
 			borrower_id: null,
 			borrower_username: null,
 			borrow_time: null,
+			return_by_date: null,
 			updated_at: new Date().toISOString(),
 		})
 		.eq('borrower_username', borrowerUsername)
@@ -230,6 +239,7 @@ export async function returnItemsByUser(borrowerUsername: string): Promise<numbe
 			borrower_id: null,
 			borrower_username: null,
 			borrow_time: null,
+			return_by_date: null,
 			updated_at: new Date().toISOString(),
 		})
 		.in('id', ids)
@@ -293,6 +303,7 @@ export async function returnItemsPartial(
 				return_item_photo_url: returnPhotos?.itemPhotoUrl ?? null,
 				borrower_return_photo_url: returnPhotos?.borrowerPhotoUrl ?? null,
 				borrow_time: null,
+				return_by_date: null,
 				return_time: time,
 				updated_at: time,
 			})
