@@ -5,6 +5,7 @@ import { Panel } from '@/components/ui/Panel'
 import { DataTable } from '@/components/ui/DataTable'
 import { formatDateTime } from '@/lib/utils'
 import { isPrivilegedRole } from '@/lib/roles'
+import { BookOpenText, ScanSearch } from 'lucide-react'
 import type { ScannedLibrary } from '@/types'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -38,10 +39,12 @@ export default function LibraryPage() {
 
   return (
     <Panel>
-      <h3 className="font-bold font-mono text-base text-muted mb-1">
+      <h3 className="mb-1 flex items-center gap-2 font-bold font-mono text-lg text-muted">
+        <BookOpenText className="h-5 w-5 text-primary" />
         QR Scanned Pass Library
       </h3>
-      <p className="text-xs text-muted mb-4">
+      <p className="mb-4 flex items-center gap-2 text-base text-muted">
+        <ScanSearch className="h-4 w-4" />
         Permanent record of all validated return passes.
       </p>
       <DataTable

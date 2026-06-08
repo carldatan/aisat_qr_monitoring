@@ -46,6 +46,30 @@ if (exists) throw new Error('Username already exists')
   return data
 }
 
+export async function createAdminAccount(creds: {
+  username: string
+  full_name: string
+  id_number: string
+  password: string
+  role: 'admin' | 'user' | 'super_admin'
+}) {
+  const response = await fetch('/api/admin/accounts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(creds),
+  })
+
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? 'Could not create account')
+  }
+
+  return payload
+}
+
 export async function logout() {
   const supabase = createClient()
   await supabase.auth.signOut()

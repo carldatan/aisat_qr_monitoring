@@ -1,6 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import {
+	Activity,
+	BookOpen,
+	Clock3,
+	LayoutDashboard,
+	Package2,
+	ShieldCheck,
+	Users,
+} from 'lucide-react'
 import { useAppStore } from '@/contexts/store'
 import { Panel } from '@/components/ui/Panel'
 import { DataTable } from '@/components/ui/DataTable'
@@ -103,9 +112,9 @@ export default function DashboardPage() {
   const totalMaintenance = equipment.filter(e => e.status === 'Maintenance').length
 
   const tabs = [
-    { key: 'overview', label: 'Overview', count: equipment.length },
-    { key: 'borrowed', label: 'Borrowed Items', count: borrowedItems.length },
-    { key: 'activity', label: 'Activity Log', count: historyLogs.length },
+    { key: 'overview', label: 'Overview', count: equipment.length, icon: LayoutDashboard },
+    { key: 'borrowed', label: 'Borrowed Items', count: borrowedItems.length, icon: Package2 },
+    { key: 'activity', label: 'Activity Log', count: historyLogs.length, icon: Activity },
   ] as const
 
   return (
@@ -119,12 +128,13 @@ export default function DashboardPage() {
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                'rounded border px-4 py-2 text-sm font-bold font-mono transition-colors',
+                'flex items-center gap-2 rounded border px-4 py-2 text-sm font-bold font-mono transition-colors',
                 active
                   ? 'border-primary bg-primary text-white'
                   : 'border-border bg-white text-gray-600 hover:bg-gray-50'
               )}
             >
+              <tab.icon className="h-4 w-4" />
               {tab.label} ({tab.count})
             </button>
           )
@@ -133,22 +143,34 @@ export default function DashboardPage() {
 
       {activeTab === 'overview' && (
         <Panel>
-          <h3 className="font-bold font-mono text-base">System Summary</h3>
+          <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            System Summary
+          </h3>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded border border-border p-4">
-              <p className="text-xs font-mono text-muted">Available</p>
-              <p className="text-2xl font-bold font-mono text-success">{totalAvailable}</p>
+            <div className="rounded-xl border border-border bg-surface/50 p-4">
+              <div className="flex items-center gap-2 text-muted">
+                <BookOpen className="h-5 w-5 text-success" />
+                <p className="text-sm font-mono">Available</p>
+              </div>
+              <p className="mt-2 text-3xl font-bold font-mono text-success">{totalAvailable}</p>
             </div>
-            <div className="rounded border border-border p-4">
-              <p className="text-xs font-mono text-muted">Borrowed</p>
-              <p className="text-2xl font-bold font-mono text-primary">{totalBorrowed}</p>
+            <div className="rounded-xl border border-border bg-surface/50 p-4">
+              <div className="flex items-center gap-2 text-muted">
+                <Users className="h-5 w-5 text-primary" />
+                <p className="text-sm font-mono">Borrowed</p>
+              </div>
+              <p className="mt-2 text-3xl font-bold font-mono text-primary">{totalBorrowed}</p>
             </div>
-            <div className="rounded border border-border p-4">
-              <p className="text-xs font-mono text-muted">Maintenance</p>
-              <p className="text-2xl font-bold font-mono text-danger">{totalMaintenance}</p>
+            <div className="rounded-xl border border-border bg-surface/50 p-4">
+              <div className="flex items-center gap-2 text-muted">
+                <Clock3 className="h-5 w-5 text-danger" />
+                <p className="text-sm font-mono">Maintenance</p>
+              </div>
+              <p className="mt-2 text-3xl font-bold font-mono text-danger">{totalMaintenance}</p>
             </div>
           </div>
-          <p className="text-sm text-primary font-mono mt-2">
+          <p className="mt-3 text-base text-primary font-mono">
             Status: Authenticated as{' '}
             <span className="font-bold">{profile?.full_name}</span>{' '}
             <span className="text-muted">({profile?.role})</span>
@@ -160,12 +182,15 @@ export default function DashboardPage() {
         <Panel>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="font-bold font-mono text-base">Borrowed Items</h3>
-              <p className="mt-1 text-xs font-mono text-muted">
+              <h3 className="flex items-center gap-2 font-bold font-mono text-lg">
+                <Package2 className="h-5 w-5 text-primary" />
+                Borrowed Items
+              </h3>
+              <p className="mt-1 text-base font-mono text-muted">
                 Active borrowed records with borrower details, lender, borrow time, and return-by date.
               </p>
             </div>
-            <p className="text-sm font-mono text-primary">
+            <p className="text-base font-mono text-primary">
               {borrowedItems.length} active item{borrowedItems.length === 1 ? '' : 's'}
             </p>
           </div>
@@ -181,7 +206,10 @@ export default function DashboardPage() {
 
       {activeTab === 'activity' && (
         <Panel>
-          <h3 className="font-bold font-mono text-base mb-3">Activity Log</h3>
+          <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
+            <Activity className="h-5 w-5 text-primary" />
+            Activity Log
+          </h3>
           <DataTable
             columns={historyColumns}
             data={historyLogs}

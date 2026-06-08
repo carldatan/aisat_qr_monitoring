@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/contexts/store'
 import { cn } from '@/lib/utils'
 import { isPrivilegedRole } from '@/lib/roles'
+import { LayoutDashboard, LibraryBig, Settings2 } from 'lucide-react'
 
 export function AppNav() {
   const pathname = usePathname()
@@ -13,9 +14,9 @@ export function AppNav() {
   const isAdmin = isPrivilegedRole(profile?.role)
 
   const tabs = [
-    { label: 'Dashboard', href: '/dashboard', show: true },
-    { label: 'Library', href: '/library', show: isAdmin },
-    { label: 'Admin Tools', href: '/admin', show: isAdmin },
+    { label: 'Dashboard', href: '/dashboard', show: true, icon: LayoutDashboard },
+    { label: 'Library', href: '/library', show: isAdmin, icon: LibraryBig },
+    { label: 'Admin Tools', href: '/admin', show: isAdmin, icon: Settings2 },
   ]
 
   return (
@@ -29,12 +30,13 @@ export function AppNav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                'px-4 py-2.5 text-base font-bold font-mono rounded border transition-colors',
+                'inline-flex items-center gap-2 px-4 py-2.5 text-base font-bold font-mono rounded border transition-colors',
                 active
                   ? 'bg-primary text-white border-primary'
                   : 'bg-surface text-gray-600 border-border hover:bg-gray-100'
               )}
             >
+              <tab.icon className="h-4 w-4" />
               {tab.label}
             </Link>
           )
