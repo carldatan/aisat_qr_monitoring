@@ -51,16 +51,47 @@ CREATE TRIGGER on_auth_user_created
 CREATE TABLE IF NOT EXISTS public.equipment (
     id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
     base_name           TEXT        NOT NULL,
+    category            TEXT        NOT NULL DEFAULT '',
+    location            TEXT        NOT NULL DEFAULT '',
     status              TEXT        NOT NULL DEFAULT 'Available'
-                                    CHECK (status IN ('Available', 'Pending', 'Borrowed')),
+                                    CHECK (status IN ('Available', 'Pending', 'Borrowed', 'Maintenance', 'Lost')),
     borrower_id         UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
     borrower_username   TEXT,
+    borrower_name       TEXT,
+    borrower_id_number  TEXT,
+    lender_username     TEXT,
+    borrow_item_photo_url TEXT,
+    borrower_borrow_photo_url TEXT,
+    return_item_photo_url TEXT,
+    borrower_return_photo_url TEXT,
     borrow_time         TIMESTAMPTZ,
+    return_time         TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_name TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_id_number TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS lender_username TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrow_item_photo_url TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_borrow_photo_url TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_item_photo_url TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_return_photo_url TEXT;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_time TIMESTAMPTZ;
+
+DO $$
+BEGIN
+    ALTER TABLE public.equipment DROP CONSTRAINT IF EXISTS equipment_status_check;
+    ALTER TABLE public.equipment
+        ADD CONSTRAINT equipment_status_check
+        CHECK (status IN ('Available', 'Pending', 'Borrowed', 'Maintenance', 'Lost'));
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_equipment_base_name  ON public.equipment (base_name);
+CREATE INDEX IF NOT EXISTS idx_equipment_category   ON public.equipment (category);
+CREATE INDEX IF NOT EXISTS idx_equipment_location   ON public.equipment (location);
 CREATE INDEX IF NOT EXISTS idx_equipment_status     ON public.equipment (status);
 CREATE INDEX IF NOT EXISTS idx_equipment_borrower   ON public.equipment (borrower_username);
 CREATE INDEX IF NOT EXISTS idx_equipment_borrower_id ON public.equipment (borrower_id);
@@ -73,8 +104,15 @@ CREATE TABLE IF NOT EXISTS public.history_logs (
     username    TEXT        NOT NULL,
     item        TEXT        NOT NULL,
     event       TEXT        NOT NULL,
+    description TEXT,
+    item_photo_url TEXT,
+    borrower_photo_url TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.history_logs ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.history_logs ADD COLUMN IF NOT EXISTS item_photo_url TEXT;
+ALTER TABLE public.history_logs ADD COLUMN IF NOT EXISTS borrower_photo_url TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_history_username   ON public.history_logs (username);
 CREATE INDEX IF NOT EXISTS idx_history_created_at ON public.history_logs (created_at DESC);

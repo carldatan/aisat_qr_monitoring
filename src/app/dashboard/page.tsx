@@ -1,32 +1,15 @@
 'use client'
 
-import { useState, useMemo } from 'react'
 import { useAppStore } from '@/contexts/store'
 import { Panel } from '@/components/ui/Panel'
-import { Button } from '@/components/ui/Button'
 import { DataTable } from '@/components/ui/DataTable'
-import { QRReturnModal } from '@/components/modals/QRReturnModal'
 import { formatDateTime } from '@/lib/utils'
 import type { HistoryLog } from '@/types'
-import Link from 'next/link'
 
 export default function DashboardPage() {
   const profile = useAppStore(s => s.profile)
   const equipment = useAppStore(s => s.equipment)
   const historyLogs = useAppStore(s => s.historyLogs)
-  const [qrOpen, setQrOpen] = useState(false)
-
-  const isAdmin = profile?.role === 'admin'
-
-  const pendingCount = useMemo(
-    () => equipment.filter(e => e.status === 'Pending').length,
-    [equipment]
-  )
-
-  const borrowedByMe = useMemo(
-    () => equipment.filter(e => e.borrower_username === profile?.username && e.status === 'Borrowed'),
-    [equipment, profile]
-  )
 
   const historyColumns = [
     {
@@ -35,56 +18,58 @@ export default function DashboardPage() {
         <span className="text-xs">{formatDateTime(row.created_at)}</span>
       ),
     },
-    { header: 'User', accessor: 'username' as keyof HistoryLog },
+    { header: 'Borrower ID', accessor: 'username' as keyof HistoryLog },
     { header: 'Item', accessor: 'item' as keyof HistoryLog },
     { header: 'Event', accessor: 'event' as keyof HistoryLog },
+    {
+      header: 'Description',
+      accessor: (row: HistoryLog) => row.description || '--',
+    },
+    {
+      header: 'Photos',
+      accessor: (row: HistoryLog) => (
+        <div className="flex gap-2">
+          {row.item_photo_url && (
+            <img
+              src={row.item_photo_url}
+              alt="Item"
+              className="h-12 w-12 rounded border border-border object-cover"
+            />
+          )}
+          {row.borrower_photo_url && (
+            <img
+              src={row.borrower_photo_url}
+              alt="Borrower"
+              className="h-12 w-12 rounded border border-border object-cover"
+            />
+          )}
+          {!row.item_photo_url && !row.borrower_photo_url && '--'}
+        </div>
+      ),
+    },
   ]
+
+  const totalAvailable = equipment.filter(e => e.status === 'Available').length
+  const totalBorrowed = equipment.filter(e => e.status === 'Borrowed').length
+  const totalMaintenance = equipment.filter(e => e.status === 'Maintenance').length
 
   return (
     <>
-      <QRReturnModal open={qrOpen} onClose={() => setQrOpen(false)} />
-
-      {/* Return QR panel — students only */}
-      {!isAdmin && (
-        <Panel>
-          <h3 className="text-success font-bold font-mono text-base mb-2">Return QR</h3>
-          <p className="text-sm text-muted mb-3">
-            Show this to Admin to return borrowed items.
-            {borrowedByMe.length > 0 && (
-              <span className="ml-2 font-bold text-gray-700">
-                ({borrowedByMe.length} item{borrowedByMe.length !== 1 ? 's' : ''} borrowed)
-              </span>
-            )}
-          </p>
-          <Button
-            variant="success"
-            onClick={() => {
-              if (borrowedByMe.length === 0) {
-                alert('No active borrowed items.')
-                return
-              }
-              setQrOpen(true)
-            }}
-          >
-            GENERATE RETURN PASS
-          </Button>
-        </Panel>
-      )}
-
-      {/* Notifications panel */}
       <Panel>
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold font-mono text-base">System Notifications</h3>
-          {isAdmin && pendingCount > 0 && (
-            <Link href="/admin">
-              <Button variant="ghost" size="sm">
-                Pending Requests{' '}
-                <span className="ml-1 bg-danger text-white text-xs px-2 py-0.5 rounded-full">
-                  {pendingCount}
-                </span>
-              </Button>
-            </Link>
-          )}
+        <h3 className="font-bold font-mono text-base">System Summary</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded border border-border p-4">
+            <p className="text-xs font-mono text-muted">Available</p>
+            <p className="text-2xl font-bold font-mono text-success">{totalAvailable}</p>
+          </div>
+          <div className="rounded border border-border p-4">
+            <p className="text-xs font-mono text-muted">Borrowed</p>
+            <p className="text-2xl font-bold font-mono text-primary">{totalBorrowed}</p>
+          </div>
+          <div className="rounded border border-border p-4">
+            <p className="text-xs font-mono text-muted">Maintenance</p>
+            <p className="text-2xl font-bold font-mono text-danger">{totalMaintenance}</p>
+          </div>
         </div>
         <p className="text-sm text-primary font-mono mt-2">
           Status: Authenticated as{' '}

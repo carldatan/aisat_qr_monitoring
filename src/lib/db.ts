@@ -55,17 +55,87 @@ export async function getAllEquipment(): Promise<Equipment[]> {
 	return data ?? []
 }
 
-export async function addEquipmentBatch(baseName: string, quantity: number) {
+export async function addEquipmentBatch(
+	baseName: string,
+	quantity: number,
+	category = '',
+	location = '',
+	status: EquipmentStatus = 'Available'
+) {
 	const supabase = createClient()
 	const rows = Array.from({ length: quantity }, () => ({
 		base_name: baseName,
-		status: 'Available' as EquipmentStatus,
+		category,
+		location,
+		status,
 		borrower_id: null,
 		borrower_username: null,
+		borrower_name: null,
+		borrower_id_number: null,
+		lender_username: null,
+		borrow_item_photo_url: null,
+		borrower_borrow_photo_url: null,
+		return_item_photo_url: null,
+		borrower_return_photo_url: null,
 		borrow_time: null,
+		return_time: null,
 	}))
 	const { error } = await supabase.from('equipment').insert(rows)
 	if (error) throw error
+}
+
+export async function adminBorrowItems(entry: {
+	baseName: string
+	category: string
+	location: string
+	quantity: number
+	borrowerName: string
+	borrowerIdNumber: string
+	lenderUsername: string
+	itemPhotoUrl: string
+	borrowerPhotoUrl: string
+}) {
+	const supabase = createClient()
+	const time = new Date().toISOString()
+
+	let query = supabase
+		.from('equipment')
+		.select('id')
+		.eq('base_name', entry.baseName)
+		.eq('status', 'Available')
+		.limit(entry.quantity)
+
+	query = query.eq('category', entry.category)
+	query = query.eq('location', entry.location)
+
+	const { data: available, error: fetchErr } = await query
+
+	if (fetchErr) throw fetchErr
+	if (!available || available.length < entry.quantity) {
+		throw new Error(`${entry.baseName} has less available quantity than requested.`)
+	}
+
+	const { error } = await supabase
+		.from('equipment')
+		.update({
+			status: 'Borrowed',
+			borrower_id: null,
+			borrower_username: entry.borrowerIdNumber,
+			borrower_name: entry.borrowerName,
+			borrower_id_number: entry.borrowerIdNumber,
+			lender_username: entry.lenderUsername,
+			borrow_item_photo_url: entry.itemPhotoUrl,
+			borrower_borrow_photo_url: entry.borrowerPhotoUrl,
+			return_item_photo_url: null,
+			borrower_return_photo_url: null,
+			borrow_time: time,
+			return_time: null,
+			updated_at: time,
+		})
+		.in('id', available.map(e => e.id))
+
+	if (error) throw error
+	return available.length
 }
 
 export async function requestBorrowItems(
@@ -169,20 +239,45 @@ export async function returnItemsByUser(borrowerUsername: string): Promise<numbe
 
 export async function returnItemsPartial(
 	borrowerUsername: string,
-	itemsToReturn: { baseName: string; qty: number }[]
+	itemsToReturn: {
+		baseName: string
+		qty: number
+		category?: string
+		location?: string
+		lenderUsername?: string
+	}[],
+	returnPhotos?: {
+		itemPhotoUrl: string
+		borrowerPhotoUrl: string
+	}
 ): Promise<number> {
 	const supabase = createClient()
 	let totalReturned = 0
+	const time = new Date().toISOString()
 
-	for (const { baseName, qty } of itemsToReturn) {
+	for (const { baseName, qty, category, location, lenderUsername } of itemsToReturn) {
 		if (qty <= 0) continue
-		const { data: targets, error: fetchErr } = await supabase
+		let query = supabase
 			.from('equipment')
 			.select('id')
 			.eq('borrower_username', borrowerUsername)
 			.eq('base_name', baseName)
 			.eq('status', 'Borrowed')
 			.limit(qty)
+
+		if (typeof category === 'string') {
+			query = query.eq('category', category)
+		}
+		if (typeof location === 'string') {
+			query = query.eq('location', location)
+		}
+		if (typeof lenderUsername === 'string') {
+			query = lenderUsername
+				? query.eq('lender_username', lenderUsername)
+				: query.is('lender_username', null)
+		}
+
+		const { data: targets, error: fetchErr } = await query
 		if (fetchErr) throw fetchErr
 		if (!targets || targets.length === 0) continue
 
@@ -192,8 +287,14 @@ export async function returnItemsPartial(
 				status: 'Available',
 				borrower_id: null,
 				borrower_username: null,
+				borrower_name: null,
+				borrower_id_number: null,
+				lender_username: null,
+				return_item_photo_url: returnPhotos?.itemPhotoUrl ?? null,
+				borrower_return_photo_url: returnPhotos?.borrowerPhotoUrl ?? null,
 				borrow_time: null,
-				updated_at: new Date().toISOString(),
+				return_time: time,
+				updated_at: time,
 			})
 			.in('id', targets.map(t => t.id))
 		if (error) throw error
@@ -208,7 +309,12 @@ export async function addHistoryLog(
 	username: string,
 	item: string,
 	event: string,
-	userId?: string
+	userId?: string,
+	options?: {
+		description?: string
+		itemPhotoUrl?: string
+		borrowerPhotoUrl?: string
+	}
 ) {
 	const supabase = createClient()
 	const { error } = await supabase.from('history_logs').insert({
@@ -216,6 +322,9 @@ export async function addHistoryLog(
 		username,
 		item,
 		event,
+		description: options?.description ?? null,
+		item_photo_url: options?.itemPhotoUrl ?? null,
+		borrower_photo_url: options?.borrowerPhotoUrl ?? null,
 	})
 	if (error) console.error('addHistoryLog:', error)
 }

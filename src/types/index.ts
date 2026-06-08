@@ -12,15 +12,25 @@ export interface Profile {
 	updated_at: string
 }
 
-export type EquipmentStatus = 'Available' | 'Pending' | 'Borrowed'
+export type EquipmentStatus = 'Available' | 'Pending' | 'Borrowed' | 'Maintenance' | 'Lost'
 
 export interface Equipment {
 	id: string               // UUID
 	base_name: string
+	category: string | null
+	location: string | null
 	status: EquipmentStatus
 	borrower_id: string | null   // FK → profiles.id
 	borrower_username: string | null
+	borrower_name: string | null
+	borrower_id_number: string | null
+	lender_username: string | null
+	borrow_item_photo_url: string | null
+	borrower_borrow_photo_url: string | null
+	return_item_photo_url: string | null
+	borrower_return_photo_url: string | null
 	borrow_time: string | null
+	return_time: string | null
 	created_at: string
 	updated_at: string
 }
@@ -31,6 +41,9 @@ export interface HistoryLog {
 	username: string
 	item: string
 	event: string
+	description: string | null
+	item_photo_url: string | null
+	borrower_photo_url: string | null
 	created_at: string
 }
 

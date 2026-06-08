@@ -3,36 +3,18 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/contexts/store'
-import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
 
 export function AppNav() {
   const pathname = usePathname()
   const profile = useAppStore(s => s.profile)
-  const equipment = useAppStore(s => s.equipment)
 
   const isAdmin = profile?.role === 'admin'
-
-  const pendingCount = useMemo(
-    () => equipment.filter(e => e.status === 'Pending').length,
-    [equipment]
-  )
 
   const tabs = [
     { label: 'Dashboard', href: '/dashboard', show: true },
     { label: 'Library', href: '/library', show: isAdmin },
-    {
-      label: (
-        <span>
-          Admin Tools
-          {pendingCount > 0 && <Badge count={pendingCount} />}
-        </span>
-      ),
-      href: '/admin',
-      show: isAdmin,
-    },
-    { label: 'Borrow', href: '/borrow', show: !isAdmin },
+    { label: 'Admin Tools', href: '/admin', show: isAdmin },
   ]
 
   return (
