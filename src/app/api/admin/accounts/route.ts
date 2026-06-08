@@ -40,7 +40,15 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'Invalid role.' }, { status: 400 })
 		}
 
-		const service = createServiceClient()
+		let service
+		try {
+			service = createServiceClient()
+		} catch (error) {
+			return NextResponse.json(
+				{ error: error instanceof Error ? error.message : 'Service role key is not configured.' },
+				{ status: 500 }
+			)
+		}
 		const { data: existingProfile, error: usernameError } = await service
 			.from('profiles')
 			.select('id')
@@ -72,8 +80,19 @@ export async function POST(request: Request) {
 		})
 
 		if (createError || !createdUser.user) {
+			const message = createError?.message ?? 'Could not create auth user.'
+			if (/invalid api key/i.test(message)) {
+				return NextResponse.json(
+					{
+						error:
+							'Supabase rejected the service role key. Make sure SUPABASE_SERVICE_ROLE_KEY is the current service role key for this project, not the anon/publishable key or a revoked key.',
+					},
+					{ status: 401 }
+				)
+			}
+
 			return NextResponse.json(
-				{ error: createError?.message ?? 'Could not create auth user.' },
+				{ error: message },
 				{ status: 400 }
 			)
 		}
