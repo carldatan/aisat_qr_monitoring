@@ -21,18 +21,18 @@ export function AppHeader() {
           AISAT COLLEGE DASMA
         </h1>
       </div>
-      <div className="text-sm font-mono text-muted">
+      <div className="text-base font-mono text-muted">
         Welcome, {profile?.full_name ?? 'User'}!
       </div>
       <div className="flex items-center gap-3">
         {profile && (
-          <span className="text-success text-sm font-mono">
+          <span className="text-success text-base font-mono">
             {profile.full_name} (@{profile.username})
           </span>
         )}
         <button
           onClick={handleLogout}
-          className="px-3 py-2 text-xs font-bold font-mono text-danger border border-danger rounded hover:bg-red-50 transition-colors"
+          className="px-3 py-2 text-sm font-bold font-mono text-danger border border-danger rounded hover:bg-red-50 transition-colors"
         >
           LOGOUT
         </button>

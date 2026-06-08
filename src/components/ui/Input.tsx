@@ -17,7 +17,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           placeholder=" "
           className={cn(
             'peer w-full px-3.5 pt-5 pb-2 bg-white text-gray-800 border border-border rounded',
-            'font-mono text-sm',
+            'font-mono text-base',
             'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary',
             'transition-colors placeholder-transparent',
             className
@@ -27,10 +27,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <label
           htmlFor={inputId}
           className={cn(
-            'absolute left-3.5 top-3.5 text-sm text-gray-400 font-mono',
+            'absolute left-3.5 top-3.5 text-base text-gray-400 font-mono',
             'transition-all duration-150 pointer-events-none',
-            'peer-focus:top-1.5 peer-focus:text-xs peer-focus:text-primary',
-            'peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500'
+            'peer-focus:top-1.5 peer-focus:text-sm peer-focus:text-primary',
+            'peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:text-sm peer-[:not(:placeholder-shown)]:text-gray-500'
           )}
         >
           {label}

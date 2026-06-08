@@ -1,6 +1,6 @@
 // ─── Database row types (match Supabase schema) ───────────────────────────────
 
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'super_admin' | 'admin' | 'user'
 
 export interface Profile {
 	id: string               // UUID, matches auth.users.id

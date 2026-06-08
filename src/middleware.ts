@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
+import { isPrivilegedRole } from '@/lib/roles'
 
 export async function middleware(request: NextRequest) {
   const response = await updateSession(request)
@@ -33,7 +34,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profile || !isPrivilegedRole(profile.role)) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)

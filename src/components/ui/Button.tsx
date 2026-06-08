@@ -22,9 +22,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-surface text-gray-700 border border-border hover:bg-gray-100': variant === 'ghost',
           },
           {
-            'px-3 py-2 text-xs': size === 'sm',
-            'px-4 py-3 text-sm': size === 'md',
-            'px-4 py-3.5 text-base': size === 'lg',
+            'px-3 py-2 text-sm': size === 'sm',
+            'px-4 py-3 text-base': size === 'md',
+            'px-4 py-3.5 text-lg': size === 'lg',
           },
           fullWidth && 'w-full',
           className

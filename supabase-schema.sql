@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name   TEXT        NOT NULL DEFAULT '',
     id_number   TEXT        NOT NULL DEFAULT '',
     email       TEXT        NOT NULL DEFAULT '',
-    role        TEXT        NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+    role        TEXT        NOT NULL DEFAULT 'user' CHECK (role IN ('super_admin', 'admin', 'user')),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -171,27 +171,35 @@ CREATE POLICY "profiles_select_auth"
 CREATE POLICY "profiles_update_own"
     ON public.profiles FOR UPDATE
     TO authenticated
-    USING (auth.uid() = id);
+    USING (auth.uid() = id)
+    WITH CHECK (
+        auth.uid() = id
+        AND role = (
+            SELECT p.role
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+        )
+    );
 
--- Admins can update any profile
+-- Super admins can update any profile
 CREATE POLICY "profiles_update_admin"
     ON public.profiles FOR UPDATE
     TO authenticated
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
+            WHERE id = auth.uid() AND role = 'super_admin'
         )
     );
 
--- Admins can delete profiles
+-- Super admins can delete profiles
 CREATE POLICY "profiles_delete_admin"
     ON public.profiles FOR DELETE
     TO authenticated
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
+            WHERE id = auth.uid() AND role = 'super_admin'
         )
     );
 
@@ -208,7 +216,7 @@ CREATE POLICY "equipment_insert_auth"
     TO authenticated
     WITH CHECK (true);
 
--- Users can update equipment they borrowed (request); admins can update anything
+-- Users can update equipment they borrowed (request); admins/super admins can update anything
 CREATE POLICY "equipment_update_auth"
     ON public.equipment FOR UPDATE
     TO authenticated
@@ -216,18 +224,18 @@ CREATE POLICY "equipment_update_auth"
         borrower_id = auth.uid()
         OR EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
+            WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
         )
     );
 
--- Admins can delete equipment
+-- Admins and super admins can delete equipment
 CREATE POLICY "equipment_delete_admin"
     ON public.equipment FOR DELETE
     TO authenticated
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
+            WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
         )
     );
 
@@ -254,21 +262,21 @@ CREATE POLICY "library_insert_admin"
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role = 'admin'
+            WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
         )
     );
 
 -- ─── 7. Seed: Admin user (run AFTER creating the auth user via dashboard) ─────
 -- Replace the UUID below with the actual UUID from auth.users after you create
--- the admin account through the Supabase Auth dashboard or signUp API.
+-- the super admin account through the Supabase Auth dashboard or signUp API.
 --
 -- INSERT INTO public.profiles (id, username, full_name, id_number, email, role)
 -- VALUES (
 --     'YOUR-ADMIN-UUID-HERE',
---     'admin',
+--     'super_admin',
 --     'System Admin',
 --     '000',
 --     'admin@aisat.edu',
---     'admin'
+--     'super_admin'
 -- )
--- ON CONFLICT (id) DO UPDATE SET role = 'admin';
+-- ON CONFLICT (id) DO UPDATE SET role = 'super_admin';

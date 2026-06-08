@@ -6,6 +6,7 @@ import {
   getAllEquipment, getAllProfiles, getHistoryLogs,
   getHistoryLogsByUser, getScannedLibrary,
 } from '@/lib/db'
+import { isPrivilegedRole } from '@/lib/roles'
 
 interface AppState {
   // Auth
@@ -64,16 +65,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   refreshAll: async () => {
     set({ loading: true })
     const { profile } = get()
-    const isAdmin = profile?.role === 'admin'
+    const isPrivileged = isPrivilegedRole(profile?.role)
 
     const [equipment, historyLogs] = await Promise.all([
       getAllEquipment(),
-      isAdmin ? getHistoryLogs() : getHistoryLogsByUser(profile?.username ?? ''),
+      isPrivileged ? getHistoryLogs() : getHistoryLogsByUser(profile?.username ?? ''),
     ])
 
     const updates: Partial<AppState> = { equipment, historyLogs, loading: false }
 
-    if (isAdmin) {
+    if (isPrivileged) {
       const [profiles, scannedLibrary] = await Promise.all([
         getAllProfiles(),
         getScannedLibrary(),

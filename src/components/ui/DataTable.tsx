@@ -21,7 +21,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full border-collapse text-sm font-mono">
+      <table className="w-full border-collapse text-base font-mono">
         <thead>
           <tr>
             {columns.map((col, i) => (
@@ -42,7 +42,7 @@ export function DataTable<T extends object>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-3 py-6 text-center text-muted border border-gray-100"
+                className="px-3 py-6 text-center text-base text-muted border border-gray-100"
               >
                 {emptyMessage}
               </td>

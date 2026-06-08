@@ -16,10 +16,13 @@ import {
 	addHistoryLog,
 	addScannedLibrary,
 	adminBorrowItems,
+	deleteProfile,
 	returnItemsPartial,
+	updateProfileRole,
 } from '@/lib/db'
 import { formatDateOnly, formatDateTime } from '@/lib/utils'
-import type { Equipment, EquipmentStatus } from '@/types'
+import { isPrivilegedRole, isSuperAdminRole } from '@/lib/roles'
+import type { Equipment, EquipmentStatus, Profile } from '@/types'
 
 interface ReturnItem {
 	baseName: string
@@ -255,6 +258,7 @@ export default function AdminPage() {
 	const router = useRouter()
 	const profile = useAppStore(s => s.profile)
 	const equipment = useAppStore(s => s.equipment)
+	const profiles = useAppStore(s => s.profiles)
 	const refreshAll = useAppStore(s => s.refreshAll)
 
 	const [borrowGroupKey, setBorrowGroupKey] = useState('')
@@ -280,9 +284,12 @@ export default function AdminPage() {
 	const [eqStatus, setEqStatus] = useState<EquipmentStatus>('Available')
 	const [addLoading, setAddLoading] = useState(false)
 	const previewReturnByDate = returnByDate || getDefaultReturnByDate()
+	const [selectedProfileId, setSelectedProfileId] = useState('')
+	const [selectedProfileRole, setSelectedProfileRole] = useState<'super_admin' | 'admin' | 'user'>('admin')
+	const [profileActionLoading, setProfileActionLoading] = useState(false)
 
 	useEffect(() => {
-		if (profile && profile.role !== 'admin') {
+		if (profile && !isPrivilegedRole(profile.role)) {
 			router.replace('/dashboard')
 		}
 	}, [profile, router])
@@ -383,6 +390,10 @@ export default function AdminPage() {
 		: ''
 	const totalReturning =
 		returnSession?.items.reduce((sum, item) => sum + item.returnQty, 0) ?? 0
+	const canManageProfiles = isSuperAdminRole(profile?.role)
+	const selectedProfile = profiles.find(item => item.id === selectedProfileId) ?? null
+	const adminProfiles = profiles.filter(item => item.role === 'admin' || item.role === 'super_admin')
+	const superAdminCount = profiles.filter(item => item.role === 'super_admin').length
 
 	const buildReturnSession = (borrowerKey: string): ReturnSession | null => {
 		const borrowed = borrowedItems.filter(item =>
@@ -637,6 +648,79 @@ export default function AdminPage() {
 			alert('Error adding equipment.')
 		} finally {
 			setAddLoading(false)
+		}
+	}
+
+	const handleSaveProfileRole = async () => {
+		if (!profile || !canManageProfiles) return
+		if (!selectedProfileId) {
+			alert('Select a profile to manage.')
+			return
+		}
+		if (selectedProfileId === profile.id) {
+			alert('You cannot change your own account from this screen.')
+			return
+		}
+
+		const target = profiles.find(item => item.id === selectedProfileId)
+		if (!target) {
+			alert('Selected profile was not found.')
+			return
+		}
+
+		if (target.role === 'super_admin' && selectedProfileRole !== 'super_admin' && superAdminCount <= 1) {
+			alert('At least one super admin must remain.')
+			return
+		}
+
+		setProfileActionLoading(true)
+		try {
+			await updateProfileRole(selectedProfileId, selectedProfileRole)
+			await refreshAll()
+			alert(`Updated ${target.username} to ${selectedProfileRole.replace('_', ' ')}.`)
+		} catch (error) {
+			console.error(error)
+			alert('Error updating profile role.')
+		} finally {
+			setProfileActionLoading(false)
+		}
+	}
+
+	const handleDeleteProfile = async () => {
+		if (!profile || !canManageProfiles) return
+		if (!selectedProfileId) {
+			alert('Select a profile to delete.')
+			return
+		}
+		if (selectedProfileId === profile.id) {
+			alert('You cannot delete your own account from this screen.')
+			return
+		}
+
+		const target = profiles.find(item => item.id === selectedProfileId)
+		if (!target) {
+			alert('Selected profile was not found.')
+			return
+		}
+		if (target.role === 'super_admin' && superAdminCount <= 1) {
+			alert('At least one super admin must remain.')
+			return
+		}
+		if (!confirm(`Delete ${target.full_name} (@${target.username})? This only removes the profile row.`)) {
+			return
+		}
+
+		setProfileActionLoading(true)
+		try {
+			await deleteProfile(selectedProfileId)
+			await refreshAll()
+			setSelectedProfileId('')
+			alert(`Deleted ${target.username}.`)
+		} catch (error) {
+			console.error(error)
+			alert('Error deleting profile.')
+		} finally {
+			setProfileActionLoading(false)
 		}
 	}
 
@@ -941,6 +1025,86 @@ export default function AdminPage() {
 					emptyMessage="No equipment in inventory."
 				/>
 			</Panel>
+
+			{canManageProfiles && (
+				<Panel>
+					<h3 className="font-bold font-mono text-base mb-2">
+						Super Admin Console
+					</h3>
+					<p className="text-sm font-mono text-muted mb-4">
+						Create, update, and delete admin accounts by changing profile roles.
+					</p>
+					<div className="grid gap-3 md:grid-cols-2">
+						<select
+							value={selectedProfileId}
+							onChange={event => {
+								const nextId = event.target.value
+								setSelectedProfileId(nextId)
+								const nextProfile = profiles.find(item => item.id === nextId)
+								setSelectedProfileRole(nextProfile?.role ?? 'admin')
+							}}
+							className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-base font-mono md:col-span-2"
+						>
+							<option value="">Select profile</option>
+							{profiles
+								.filter(item => item.id !== profile?.id)
+								.sort((a, b) => a.username.localeCompare(b.username))
+								.map(item => (
+									<option key={item.id} value={item.id}>
+										{item.full_name} (@{item.username}) - {item.role}
+									</option>
+								))}
+						</select>
+						<select
+							value={selectedProfileRole}
+							onChange={event => setSelectedProfileRole(event.target.value as 'super_admin' | 'admin' | 'user')}
+							className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-base font-mono"
+						>
+							<option value="admin">Admin</option>
+							<option value="user">User</option>
+							<option value="super_admin">Super Admin</option>
+						</select>
+						<div className="flex gap-2">
+							<Button
+								fullWidth
+								onClick={handleSaveProfileRole}
+								disabled={profileActionLoading || !selectedProfileId}
+							>
+								{profileActionLoading ? 'SAVING...' : 'SAVE ROLE'}
+							</Button>
+							<Button
+								variant="danger"
+								fullWidth
+								onClick={handleDeleteProfile}
+								disabled={profileActionLoading || !selectedProfileId}
+							>
+								DELETE
+							</Button>
+						</div>
+					</div>
+					{selectedProfile && (
+						<p className="mt-3 text-sm font-mono text-muted">
+							Selected: {selectedProfile.full_name} (@{selectedProfile.username}) | Current role: {selectedProfile.role}
+						</p>
+					)}
+					<div className="mt-5">
+						<DataTable
+							columns={[
+								{ header: 'Name', accessor: (row: Profile) => row.full_name },
+								{ header: 'Username', accessor: (row: Profile) => `@${row.username}` },
+								{ header: 'ID Number', accessor: 'id_number' as keyof Profile },
+								{ header: 'Role', accessor: 'role' as keyof Profile },
+								{
+									header: 'Created',
+									accessor: (row: Profile) => formatDateTime(row.created_at),
+								},
+							]}
+							data={adminProfiles}
+							emptyMessage="No admin accounts found."
+						/>
+					</div>
+				</Panel>
+			)}
 
 			<Panel>
 				<h3 className="font-bold font-mono text-base mb-3">

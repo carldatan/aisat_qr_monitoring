@@ -27,7 +27,7 @@ export async function getAllProfiles(): Promise<Profile[]> {
 	return data ?? []
 }
 
-export async function updateProfileRole(userId: string, role: 'admin' | 'user') {
+export async function updateProfileRole(userId: string, role: 'super_admin' | 'admin' | 'user') {
 	const supabase = createClient()
 	const { error } = await supabase
 		.from('profiles')

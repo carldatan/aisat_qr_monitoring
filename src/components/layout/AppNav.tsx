@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/contexts/store'
 import { cn } from '@/lib/utils'
+import { isPrivilegedRole } from '@/lib/roles'
 
 export function AppNav() {
   const pathname = usePathname()
   const profile = useAppStore(s => s.profile)
 
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = isPrivilegedRole(profile?.role)
 
   const tabs = [
     { label: 'Dashboard', href: '/dashboard', show: true },
@@ -28,7 +29,7 @@ export function AppNav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                'px-4 py-2.5 text-sm font-bold font-mono rounded border transition-colors',
+                'px-4 py-2.5 text-base font-bold font-mono rounded border transition-colors',
                 active
                   ? 'bg-primary text-white border-primary'
                   : 'bg-surface text-gray-600 border-border hover:bg-gray-100'

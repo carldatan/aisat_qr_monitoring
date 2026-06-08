@@ -4,6 +4,7 @@ import { useAppStore } from '@/contexts/store'
 import { Panel } from '@/components/ui/Panel'
 import { DataTable } from '@/components/ui/DataTable'
 import { formatDateTime } from '@/lib/utils'
+import { isPrivilegedRole } from '@/lib/roles'
 import type { ScannedLibrary } from '@/types'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -14,7 +15,7 @@ export default function LibraryPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (profile && profile.role !== 'admin') router.replace('/dashboard')
+    if (profile && !isPrivilegedRole(profile.role)) router.replace('/dashboard')
   }, [profile, router])
 
   const columns = [
