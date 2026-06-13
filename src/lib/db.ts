@@ -67,6 +67,7 @@ export async function addEquipmentBatch(
 		base_name: baseName,
 		category,
 		location,
+		return_location: null,
 		status,
 		borrower_id: null,
 		borrower_username: null,
@@ -89,6 +90,7 @@ export async function adminBorrowItems(entry: {
 	baseName: string
 	category: string
 	location: string
+	returnLocation: string
 	quantity: number
 	borrowerName: string
 	borrowerIdNumber: string
@@ -126,6 +128,7 @@ export async function adminBorrowItems(entry: {
 			borrower_name: entry.borrowerName,
 			borrower_id_number: entry.borrowerIdNumber,
 			lender_username: entry.lenderUsername,
+			return_location: entry.returnLocation,
 			borrow_item_photo_url: entry.itemPhotoUrl,
 			borrower_borrow_photo_url: entry.borrowerPhotoUrl,
 			return_item_photo_url: null,
@@ -213,6 +216,7 @@ export async function disapproveRequest(
 			borrower_username: null,
 			borrow_time: null,
 			return_by_date: null,
+			return_location: null,
 			updated_at: new Date().toISOString(),
 		})
 		.eq('borrower_username', borrowerUsername)
@@ -225,25 +229,29 @@ export async function returnItemsByUser(borrowerUsername: string): Promise<numbe
 	const supabase = createClient()
 	const { data: items, error: fetchErr } = await supabase
 		.from('equipment')
-		.select('id')
+		.select('id, location, return_location')
 		.eq('borrower_username', borrowerUsername)
 		.eq('status', 'Borrowed')
 	if (fetchErr) throw fetchErr
 	if (!items || items.length === 0) return 0
 
-	const ids = items.map(e => e.id)
-	const { error } = await supabase
-		.from('equipment')
-		.update({
-			status: 'Available',
-			borrower_id: null,
-			borrower_username: null,
-			borrow_time: null,
-			return_by_date: null,
-			updated_at: new Date().toISOString(),
-		})
-		.in('id', ids)
-	if (error) throw error
+	const time = new Date().toISOString()
+	for (const item of items) {
+		const { error } = await supabase
+			.from('equipment')
+			.update({
+				status: 'Available',
+				borrower_id: null,
+				borrower_username: null,
+				borrow_time: null,
+				return_by_date: null,
+				location: item.return_location ?? item.location ?? null,
+				return_location: null,
+				updated_at: time,
+			})
+			.eq('id', item.id)
+		if (error) throw error
+	}
 	return items.length
 }
 
@@ -254,6 +262,7 @@ export async function returnItemsPartial(
 		qty: number
 		category?: string
 		location?: string
+		returnLocation?: string
 		lenderUsername?: string
 	}[],
 	returnPhotos?: {
@@ -265,7 +274,7 @@ export async function returnItemsPartial(
 	let totalReturned = 0
 	const time = new Date().toISOString()
 
-	for (const { baseName, qty, category, location, lenderUsername } of itemsToReturn) {
+	for (const { baseName, qty, category, location, returnLocation, lenderUsername } of itemsToReturn) {
 		if (qty <= 0) continue
 		let query = supabase
 			.from('equipment')
@@ -280,6 +289,9 @@ export async function returnItemsPartial(
 		}
 		if (typeof location === 'string') {
 			query = query.eq('location', location)
+		}
+		if (typeof returnLocation === 'string') {
+			query = query.eq('return_location', returnLocation)
 		}
 		if (typeof lenderUsername === 'string') {
 			query = lenderUsername
@@ -300,6 +312,8 @@ export async function returnItemsPartial(
 				borrower_name: null,
 				borrower_id_number: null,
 				lender_username: null,
+				location: returnLocation ?? location ?? null,
+				return_location: null,
 				return_item_photo_url: returnPhotos?.itemPhotoUrl ?? null,
 				borrower_return_photo_url: returnPhotos?.borrowerPhotoUrl ?? null,
 				borrow_time: null,

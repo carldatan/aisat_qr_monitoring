@@ -19,6 +19,7 @@ export interface Equipment {
 	base_name: string
 	category: string | null
 	location: string | null
+	return_location: string | null
 	status: EquipmentStatus
 	borrower_id: string | null   // FK → profiles.id
 	borrower_username: string | null

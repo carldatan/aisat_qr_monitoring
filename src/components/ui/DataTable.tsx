@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 
 interface Column<T> {
   header: string
@@ -52,9 +53,21 @@ export function DataTable<T extends object>({
               <tr key={ri} className="hover:bg-gray-50 transition-colors">
                 {columns.map((col, ci) => (
                   <td key={ci} className={cn('px-3 py-3 border border-gray-100', col.className)}>
-                    {typeof col.accessor === 'function'
-                      ? col.accessor(row)
-                      : String(row[col.accessor] ?? '')}
+                    {(() => {
+                      const value = typeof col.accessor === 'function'
+                        ? col.accessor(row)
+                        : (row[col.accessor] as React.ReactNode)
+
+                      if (
+                        typeof value === 'string' &&
+                        col.header.toLowerCase() === 'status' &&
+                        value
+                      ) {
+                        return <StatusBadge status={value} />
+                      }
+
+                      return value ?? ''
+                    })()}
                   </td>
                 ))}
               </tr>

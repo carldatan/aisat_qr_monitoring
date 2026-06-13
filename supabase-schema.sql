@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
     base_name           TEXT        NOT NULL,
     category            TEXT        NOT NULL DEFAULT '',
     location            TEXT        NOT NULL DEFAULT '',
+    return_location     TEXT,
     status              TEXT        NOT NULL DEFAULT 'Available'
                                     CHECK (status IN ('Available', 'Pending', 'Borrowed', 'Maintenance', 'Lost')),
     borrower_id         UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
 
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS return_location TEXT;
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_name TEXT;
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS borrower_id_number TEXT;
 ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS lender_username TEXT;

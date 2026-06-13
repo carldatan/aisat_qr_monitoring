@@ -49,6 +49,7 @@ interface ReturnItem {
 	lenderUsername: string
 	category: string
 	location: string
+	returnLocation: string
 }
 
 interface ReturnSession {
@@ -283,6 +284,7 @@ export default function AdminPage() {
 	const [borrowQty, setBorrowQty] = useState('1')
 	const [borrowerName, setBorrowerName] = useState('')
 	const [borrowerIdNumber, setBorrowerIdNumber] = useState('')
+	const [returnLocation, setReturnLocation] = useState('')
 	const [returnByDate, setReturnByDate] = useState(() => getDefaultReturnByDate())
 	const [borrowItemPhoto, setBorrowItemPhoto] = useState('')
 	const [borrowerBorrowPhoto, setBorrowerBorrowPhoto] = useState('')
@@ -409,6 +411,9 @@ export default function AdminPage() {
 	const selectedAvailable = availableGroups.find(group =>
 		`${group.baseName}|${group.category}|${group.location}` === borrowGroupKey
 	)
+	useEffect(() => {
+		setReturnLocation(selectedAvailable?.location ?? '')
+	}, [selectedAvailable?.location, borrowGroupKey])
 	const returnQrValue = borrowerIdNumber
 		? `${RETURN_QR_PREFIX}${borrowerIdNumber.trim()}`
 		: ''
@@ -437,6 +442,7 @@ export default function AdminPage() {
 				item.lender_username ?? '',
 				item.category ?? '',
 				item.location ?? '',
+				item.return_location ?? '',
 			].join('|')
 			const existing = itemMap.get(key)
 			if (existing) existing.totalBorrowed++
@@ -448,6 +454,7 @@ export default function AdminPage() {
 					lenderUsername: item.lender_username ?? '',
 					category: item.category ?? '',
 					location: item.location ?? '',
+					returnLocation: item.return_location ?? '',
 				})
 			}
 		})
@@ -482,10 +489,11 @@ export default function AdminPage() {
 		const qty = parseInt(borrowQty, 10)
 		const normalizedBorrowerId = borrowerIdNumber.trim()
 		const normalizedReturnByDate = returnByDate || getDefaultReturnByDate()
+		const normalizedReturnLocation = returnLocation.trim()
 		const returnByDateIso = new Date(`${normalizedReturnByDate}T23:59:59`).toISOString()
 
-		if (!selectedAvailable || !borrowerName || !normalizedBorrowerId || Number.isNaN(qty) || qty <= 0) {
-			alert('Complete borrower, item, and quantity fields.')
+		if (!selectedAvailable || !borrowerName || !normalizedBorrowerId || !normalizedReturnLocation || Number.isNaN(qty) || qty <= 0) {
+			alert('Complete borrower, item, quantity, and return location fields.')
 			return
 		}
 		if (!borrowItemPhoto || !borrowerBorrowPhoto) {
@@ -507,6 +515,7 @@ export default function AdminPage() {
 				borrowerName,
 				borrowerIdNumber: normalizedBorrowerId,
 				lenderUsername: profile.username,
+				returnLocation: normalizedReturnLocation,
 				itemPhotoUrl: borrowItemPhoto,
 				borrowerPhotoUrl: borrowerBorrowPhoto,
 				returnByDate: returnByDateIso,
@@ -526,6 +535,7 @@ export default function AdminPage() {
 			setBorrowQty('1')
 			setBorrowerName('')
 			setBorrowerIdNumber('')
+			setReturnLocation('')
 			setReturnByDate(getDefaultReturnByDate())
 			setBorrowItemPhoto('')
 			setBorrowerBorrowPhoto('')
@@ -596,6 +606,7 @@ export default function AdminPage() {
 				qty: item.returnQty,
 				category: item.category,
 				location: item.location,
+				returnLocation: item.returnLocation || undefined,
 				lenderUsername: item.lenderUsername,
 			}))
 
@@ -828,6 +839,11 @@ export default function AdminPage() {
 						onChange={event => setBorrowerIdNumber(event.target.value)}
 					/>
 					<Input
+						label="Return Location"
+						value={returnLocation}
+						onChange={event => setReturnLocation(event.target.value)}
+					/>
+					<Input
 						type="date"
 						label="Return By Date"
 						value={returnByDate}
@@ -965,6 +981,7 @@ export default function AdminPage() {
 									<tr>
 										<th className="border border-gray-100 bg-surface px-3 py-2 text-left">Item</th>
 										<th className="border border-gray-100 bg-surface px-3 py-2 text-left">Details</th>
+										<th className="border border-gray-100 bg-surface px-3 py-2 text-left">Return Location</th>
 										<th className="border border-gray-100 bg-surface px-3 py-2 text-left">Borrowed</th>
 										<th className="border border-gray-100 bg-surface px-3 py-2 text-left">Return Qty</th>
 									</tr>
@@ -975,6 +992,9 @@ export default function AdminPage() {
 											<td className="border border-gray-100 px-3 py-2">{item.baseName}</td>
 											<td className="border border-gray-100 px-3 py-2 text-xs text-muted">
 												{item.category || 'Uncategorized'} | {item.location || 'Unassigned'} | Lender: @{item.lenderUsername || profile?.username}
+											</td>
+											<td className="border border-gray-100 px-3 py-2 text-xs text-muted">
+												{item.returnLocation || item.location || 'Unassigned'}
 											</td>
 											<td className="border border-gray-100 px-3 py-2">{item.totalBorrowed}</td>
 											<td className="border border-gray-100 px-3 py-2">
