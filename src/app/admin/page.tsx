@@ -1150,11 +1150,10 @@ export default function AdminPage() {
 								/>
 								<select
 									value={createRole}
-									onChange={event => setCreateRole(event.target.value as 'admin' | 'user' | 'super_admin')}
+									onChange={event => setCreateRole(event.target.value as 'admin' | 'super_admin')}
 									className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-base font-mono md:col-span-2"
 								>
 									<option value="admin">Admin</option>
-									<option value="user">User</option>
 									<option value="super_admin">Super Admin</option>
 								</select>
 							</div>
