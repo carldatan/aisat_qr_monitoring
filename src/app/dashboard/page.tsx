@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
 	Activity,
 	BookOpen,
 	Clock3,
 	LayoutDashboard,
 	Package2,
+	QrCode,
 	ShieldCheck,
 	Users,
 } from 'lucide-react'
@@ -143,10 +145,24 @@ export default function DashboardPage() {
 
       {activeTab === 'overview' && (
         <Panel>
-          <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            System Summary
-          </h3>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 font-bold font-mono text-lg">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                System Summary
+              </h3>
+              <p className="mt-1 text-base font-mono text-muted">
+                Fast access to your active records and scanner tools.
+              </p>
+            </div>
+            <Link
+              href="/admin#return-transaction"
+              className="inline-flex items-center gap-2 rounded border border-primary bg-primary px-4 py-2 text-sm font-bold font-mono text-white transition-colors hover:bg-primary-dark"
+            >
+              <QrCode className="h-4 w-4" />
+              SCAN QR
+            </Link>
+          </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-surface/50 p-4">
               <div className="flex items-center gap-2 text-muted">

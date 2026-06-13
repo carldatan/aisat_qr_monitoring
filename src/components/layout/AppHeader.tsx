@@ -1,7 +1,5 @@
 'use client'
 
-import Image from 'next/image'
-import logo from './aisat_logo.jpg'
 import { useAppStore } from '@/contexts/store'
 import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
@@ -21,14 +19,7 @@ export function AppHeader() {
 		<header className="px-8 py-5 border-b border-border flex justify-between items-center bg-white sticky top-0 z-50">
 			<div className="flex items-center gap-3">
 				<div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
-					<Image
-						alt="aisat-logo"
-						src={logo}
-						width={44}
-						height={44}
-						className="rounded-lg object-cover"
-						priority
-					/>
+					<ShieldCheck className="h-6 w-6" />
 				</div>
 				<h1 className="text-2xl font-mono font-bold text-primary tracking-wide">
 					AISAT COLLEGE DASMA

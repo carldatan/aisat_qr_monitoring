@@ -786,7 +786,7 @@ export default function AdminPage() {
 
 	return (
 		<>
-			<Panel>
+			<Panel id="return-transaction">
 				<h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
 					<ClipboardList className="h-5 w-5 text-primary" />
 					Borrow Transaction
