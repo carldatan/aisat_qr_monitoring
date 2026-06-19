@@ -19,7 +19,7 @@
 }
 
 html, body {
-  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-family: 'Times New Roman', Times, serif;
   background: linear-gradient(135deg, #ffffff 0%, #f0f2f5 100%);
   background-attachment: fixed;
   color: #333333;
@@ -46,7 +46,7 @@ body::before {
 }
 
 #qr-reader__dashboard_section_csr button {
-  font-family: Consolas, monospace;
+  font-family: 'Times New Roman', Times, serif;
   font-size: 13px;
   padding: 8px 16px;
   background: var(--primary);

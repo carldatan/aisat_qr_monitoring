@@ -21,7 +21,8 @@ const config: Config = {
         surface: '#f8f9fa',
       },
       fontFamily: {
-        mono: ['Consolas', 'Monaco', 'Courier New', 'monospace'],
+        mono: ['Times New Roman', 'Times', 'serif'],
+        sans: ['Times New Roman', 'Times', 'serif'],
       },
       boxShadow: {
         panel: '0 4px 6px rgba(0,0,0,0.02)',

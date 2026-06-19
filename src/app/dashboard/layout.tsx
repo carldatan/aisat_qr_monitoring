@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { AppNav } from '@/components/layout/AppNav'
+import { Sidebar } from '@/components/admin/Sidebar'
 import { useAppStore } from '@/contexts/store'
 import { createClient } from '@/lib/supabase/client'
 import { getProfile } from '@/lib/db'
@@ -41,10 +40,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <AppHeader />
-      <AppNav />
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+    <div className="flex min-h-screen bg-[#EEF1F6]">
+      <Sidebar />
+      <main className="flex-1 ml-[220px] p-6 lg:p-8">
         {children}
       </main>
     </div>
