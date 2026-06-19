@@ -55,9 +55,22 @@ function AttentionRow({
   )
 }
 
+function SkeletonRow() {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-lg bg-gray-50 px-4 py-3 animate-pulse">
+      <div className="flex-1">
+        <div className="h-4 w-48 bg-gray-200 rounded" />
+        <div className="mt-1.5 h-3 w-36 bg-gray-200 rounded" />
+      </div>
+      <div className="h-3 w-16 bg-gray-200 rounded" />
+    </div>
+  )
+}
+
 export function AttentionPanel() {
   const equipment = useAppStore(s => s.equipment)
   const historyLogs = useAppStore(s => s.historyLogs)
+  const loading = useAppStore(s => s.loading)
 
   const rows = useMemo(() => {
     const now = new Date()
@@ -112,6 +125,22 @@ export function AttentionPanel() {
 
     return result
   }, [equipment, historyLogs])
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-bold text-gray-900">Needs Attention</h2>
+          <span className="text-sm font-semibold text-[#3B5BFF]">Loading...</span>
+        </div>
+        <div className="space-y-2">
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </div>
+      </div>
+    )
+  }
 
   if (rows.length === 0) return null
 

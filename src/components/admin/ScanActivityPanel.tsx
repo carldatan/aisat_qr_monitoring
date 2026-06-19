@@ -32,9 +32,27 @@ function getRelativeTime(iso: string): string {
   }
 }
 
+function SkeletonRow() {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3 animate-pulse">
+      <div className="flex-1">
+        <div className="h-4 w-44 bg-gray-200 rounded" />
+        <div className="mt-1.5 h-3 w-32 bg-gray-200 rounded" />
+        <div className="mt-2 flex items-center gap-3">
+          <div className="h-3 w-16 bg-gray-200 rounded" />
+          <div className="h-3 w-20 bg-gray-200 rounded" />
+        </div>
+        <div className="mt-2 h-5 w-20 bg-gray-200 rounded-full" />
+      </div>
+      <div className="h-6 w-20 bg-gray-200 rounded-full" />
+    </div>
+  )
+}
+
 export function ScanActivityPanel() {
   const historyLogs = useAppStore(s => s.historyLogs)
   const equipment = useAppStore(s => s.equipment)
+  const loading = useAppStore(s => s.loading)
 
   const recentScans = useMemo(() => {
     const eqMap = new Map(equipment.map(e => [e.id, e]))
@@ -67,6 +85,23 @@ export function ScanActivityPanel() {
         }
       })
   }, [historyLogs, equipment])
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-bold text-gray-900">Recent Scan Activity</h2>
+          <span className="text-sm text-gray-400">Loading...</span>
+        </div>
+        <div className="divide-y divide-gray-100">
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
