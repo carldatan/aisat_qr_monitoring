@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
@@ -7,6 +8,7 @@ interface StatCardProps {
   caption: string
   icon: LucideIcon
   accentClass: string
+  href?: string
 }
 
 const accentBgMap: Record<string, string> = {
@@ -23,9 +25,10 @@ export function StatCard({
   caption,
   icon: Icon,
   accentClass,
+  href,
 }: StatCardProps) {
-  return (
-    <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-gray-500">{label}</p>
@@ -41,6 +44,25 @@ export function StatCard({
         </div>
       </div>
       <p className="mt-2 text-[11px] text-gray-400 truncate">{caption}</p>
-    </div>
+    </>
   )
+
+  const baseClassName =
+    'group flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0 transition-all duration-200'
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          baseClassName,
+          'cursor-pointer hover:-translate-y-0.5 hover:border-[#3B5BFF]/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/20'
+        )}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className={baseClassName}>{content}</div>
 }

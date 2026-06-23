@@ -13,12 +13,12 @@ import {
 } from 'lucide-react'
 
 const statConfigs = [
-  { key: 'total', label: 'Total Equipment', caption: 'Current inventory', icon: Monitor, accent: 'blue' },
-  { key: 'available', label: 'Available', caption: 'Ready to use', icon: CheckCircle, accent: 'green' },
-  { key: 'inUse', label: 'In Use', caption: 'Checked out', icon: Activity, accent: 'purple' },
-  { key: 'overdue', label: 'Overdue', caption: 'Past due return', icon: Clock, accent: 'orange' },
-  { key: 'damaged', label: 'Damaged', caption: 'Needs repair', icon: AlertTriangle, accent: 'orange' },
-  { key: 'lost', label: 'Lost', caption: 'Unaccounted', icon: XCircle, accent: 'red' },
+  { key: 'total', label: 'Total Equipment', caption: 'Current inventory', icon: Monitor, accent: 'blue', href: '/dashboard/stats/total' },
+  { key: 'available', label: 'Available', caption: 'Ready to use', icon: CheckCircle, accent: 'green', href: '/dashboard/stats/available' },
+  { key: 'inUse', label: 'In Use', caption: 'Checked out', icon: Activity, accent: 'purple', href: '/dashboard/stats/in-use' },
+  { key: 'overdue', label: 'Overdue', caption: 'Past due return', icon: Clock, accent: 'orange', href: '/dashboard/stats/overdue' },
+  { key: 'damaged', label: 'Damaged', caption: 'Needs repair', icon: AlertTriangle, accent: 'orange', href: '/dashboard/stats/damaged' },
+  { key: 'lost', label: 'Lost', caption: 'Unaccounted', icon: XCircle, accent: 'red', href: '/dashboard/stats/lost' },
 ] as const
 
 function SkeletonCard() {
@@ -71,6 +71,7 @@ export function StatCardRow() {
           caption={cfg.caption}
           icon={cfg.icon}
           accentClass={cfg.accent}
+          href={cfg.href}
         />
       ))}
     </div>
