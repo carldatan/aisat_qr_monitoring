@@ -97,7 +97,9 @@ function StatIcon({ stat }: { stat: DashboardStatKey }) {
 
 export function StatDetailView({ stat }: { stat: DashboardStatKey }) {
   const equipment = useAppStore(s => s.equipment)
-  const loading = useAppStore(s => s.loading)
+  const fetchState = useAppStore(s => s.fetchState)
+
+  const loading = fetchState.equipment === 0
 
   const { title, description, accentClass } = statMeta[stat]
 

@@ -8,7 +8,11 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/contexts/store'
 import {
   LayoutDashboard,
-  Monitor,
+  Send,
+  Undo2,
+  Package2,
+  ShieldCheck,
+  BookOpen,
   ClipboardList,
   Activity,
   Globe,
@@ -17,7 +21,11 @@ import {
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/tools', label: 'Equipment', icon: Monitor },
+  { href: '/admin/borrow', label: 'Borrow', icon: Send },
+  { href: '/admin/return', label: 'Return', icon: Undo2 },
+  { href: '/admin/inventory', label: 'Inventory', icon: Package2 },
+  { href: '/admin/borrowed', label: 'Borrowed', icon: BookOpen },
+  { href: '/admin/console', label: 'Console', icon: ShieldCheck },
   { href: '/library', label: 'Records', icon: ClipboardList },
   { href: '/admin/logs', label: 'Logs', icon: Activity },
 ]

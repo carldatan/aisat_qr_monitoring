@@ -9,7 +9,7 @@ import { getProfile } from '@/lib/db'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { setProfile, refreshAll } = useAppStore()
+  const { setProfile } = useAppStore()
 
   useEffect(() => {
     const supabase = createClient()
@@ -22,7 +22,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!profile) { router.replace('/login'); return }
 
       setProfile(profile)
-      await refreshAll()
     }
 
     init()

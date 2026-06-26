@@ -52,7 +52,9 @@ function SkeletonRow() {
 export function ScanActivityPanel() {
   const historyLogs = useAppStore(s => s.historyLogs)
   const equipment = useAppStore(s => s.equipment)
-  const loading = useAppStore(s => s.loading)
+  const fetchState = useAppStore(s => s.fetchState)
+
+  const loading = fetchState.historyLogs === 0
 
   const recentScans = useMemo(() => {
     const eqMap = new Map(equipment.map(e => [e.id, e]))

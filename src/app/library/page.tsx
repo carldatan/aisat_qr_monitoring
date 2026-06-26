@@ -13,7 +13,12 @@ import { useEffect } from 'react'
 export default function LibraryPage() {
   const profile = useAppStore(s => s.profile)
   const scannedLibrary = useAppStore(s => s.scannedLibrary)
+  const loadPageData = useAppStore(s => s.loadPageData)
   const router = useRouter()
+
+  useEffect(() => {
+    loadPageData('library')
+  }, [loadPageData])
 
   useEffect(() => {
     if (profile && !isPrivilegedRole(profile.role)) router.replace('/dashboard')

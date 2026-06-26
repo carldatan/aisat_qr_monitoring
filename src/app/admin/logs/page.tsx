@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/contexts/store'
 import { formatDateTime } from '@/lib/utils'
 import { Activity, Search, Filter } from 'lucide-react'
@@ -21,6 +21,11 @@ function EventBadge({ event }: { event: string }) {
 
 export default function LogsPage() {
   const historyLogs = useAppStore(s => s.historyLogs)
+  const loadPageData = useAppStore(s => s.loadPageData)
+
+  useEffect(() => {
+    loadPageData('adminLogs')
+  }, [loadPageData])
   const [search, setSearch] = useState('')
   const [eventFilter, setEventFilter] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)

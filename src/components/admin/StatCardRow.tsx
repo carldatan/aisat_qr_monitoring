@@ -38,7 +38,9 @@ function SkeletonCard() {
 
 export function StatCardRow() {
   const equipment = useAppStore(s => s.equipment)
-  const loading = useAppStore(s => s.loading)
+  const fetchState = useAppStore(s => s.fetchState)
+
+  const loading = fetchState.equipment === 0
 
   const counts = useMemo(() => {
     const now = new Date()

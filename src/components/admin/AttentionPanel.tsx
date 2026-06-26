@@ -70,63 +70,65 @@ function SkeletonRow() {
 export function AttentionPanel() {
   const equipment = useAppStore(s => s.equipment)
   const historyLogs = useAppStore(s => s.historyLogs)
-  const loading = useAppStore(s => s.loading)
+  const fetchState = useAppStore(s => s.fetchState)
+
+  const equipmentLoaded = fetchState.equipment !== 0
+  const historyLoaded = fetchState.historyLogs !== 0
 
   const rows = useMemo(() => {
     const now = new Date()
-
-    const overdueCount = equipment.filter(
-      e => e.status === 'Borrowed' && e.return_by_date && new Date(e.return_by_date) < now
-    ).length
-
-    const pendingCount = equipment.filter(
-      e => e.status === 'Pending'
-    ).length
-
-    const flaggedCount = historyLogs.filter(
-      log => log.event === 'Borrowed' || log.event === 'Returned'
-    ).length
-
     const result: AttentionRowProps[] = []
 
-    if (overdueCount > 0) {
-      result.push({
-        variant: 'warning',
-        title: `${overdueCount} item${overdueCount === 1 ? '' : 's'} overdue for return`,
-        description: 'Past due date — please follow up with the borrower.',
-        linkLabel: 'Equipment',
-        href: '/admin/tools',
-      })
+    if (equipmentLoaded) {
+      const overdueCount = equipment.filter(
+        e => e.status === 'Borrowed' && e.return_by_date && new Date(e.return_by_date) < now
+      ).length
+
+      const pendingCount = equipment.filter(
+        e => e.status === 'Pending'
+      ).length
+
+      if (overdueCount > 0) {
+        result.push({
+          variant: 'warning',
+          title: `${overdueCount} item${overdueCount === 1 ? '' : 's'} overdue for return`,
+          description: 'Past due date — please follow up with the borrower.',
+          linkLabel: 'Equipment',
+          href: '/admin/tools',
+        })
+      }
+
+      if (pendingCount > 0) {
+        result.push({
+          variant: 'warning',
+          title: `${pendingCount} item${pendingCount === 1 ? '' : 's'} pending registration`,
+          description: 'Awaiting QR assignment or status update.',
+          linkLabel: 'Equipment',
+          href: '/admin/tools',
+        })
+      }
     }
 
-    if (pendingCount > 0) {
-      result.push({
-        variant: 'warning',
-        title: `${pendingCount} item${pendingCount === 1 ? '' : 's'} pending registration`,
-        description: 'Awaiting QR assignment or status update.',
-        linkLabel: 'Equipment',
-        href: '/admin/tools',
-      })
-    }
+    if (historyLoaded) {
+      const recentFlagged = historyLogs.filter(
+        log => log.event === 'Borrowed'
+      ).length
 
-    const recentFlagged = historyLogs.filter(
-      log => log.event === 'Borrowed'
-    ).length
-
-    if (recentFlagged > 0) {
-      result.push({
-        variant: 'alert',
-        title: `${recentFlagged} recent checkout${recentFlagged === 1 ? '' : 's'} recorded`,
-        description: 'Items currently checked out and in use.',
-        linkLabel: 'Logs',
-        href: '/admin/logs',
-      })
+      if (recentFlagged > 0) {
+        result.push({
+          variant: 'alert',
+          title: `${recentFlagged} recent checkout${recentFlagged === 1 ? '' : 's'} recorded`,
+          description: 'Items currently checked out and in use.',
+          linkLabel: 'Logs',
+          href: '/admin/logs',
+        })
+      }
     }
 
     return result
-  }, [equipment, historyLogs])
+  }, [equipment, historyLogs, equipmentLoaded, historyLoaded])
 
-  if (loading) {
+  if (!equipmentLoaded && !historyLoaded) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
