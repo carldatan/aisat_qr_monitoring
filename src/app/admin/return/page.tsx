@@ -212,23 +212,23 @@ export default function ReturnPage() {
   }
 
   return (
-    <>
-      <Panel>
-        <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
-          <Clock3 className="h-5 w-5 text-primary" />
-          Return Transaction
+    <div className="grid gap-3 md:grid-cols-[1fr_3fr] items-start">
+      <Panel className="p-4">
+        <h3 className="mb-2 flex items-center gap-2 font-bold font-mono text-sm">
+          <Clock3 className="h-4 w-4 text-primary" />
+          Return
         </h3>
-        <div className="mb-5 rounded border border-border p-4">
-          <h4 className="mb-3 font-bold font-mono text-sm">
-            Scan Borrower Return QR
+        <div className="mb-3 rounded border border-border p-3">
+          <h4 className="mb-2 font-bold font-mono text-xs">
+            Scan QR
           </h4>
           <QRScanner onScanSuccess={handleReturnQrScan} />
         </div>
-        <div className="flex flex-col gap-3 md:flex-row">
+        <div className="flex flex-col gap-2">
           <select
             value={manualReturnUser}
             onChange={event => setManualReturnUser(event.target.value)}
-            className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-sm font-mono"
+            className="w-full rounded border border-border bg-white px-3 py-2.5 text-xs font-mono"
           >
             <option value="">Select borrower</option>
             {activeBorrowers.map(borrower => (
@@ -248,13 +248,13 @@ export default function ReturnPage() {
       </Panel>
 
       {returnSession && (
-        <Panel>
-          <div className="mb-3 flex items-start justify-between gap-3">
+        <Panel className="p-4">
+          <div className="mb-2 flex items-start justify-between gap-2">
             <div>
-              <h4 className="font-bold font-mono text-success">
+              <h4 className="font-bold font-mono text-xs text-success">
                 {returnSession.fullName}
               </h4>
-              <p className="text-xs font-mono text-muted">
+              <p className="text-2xs font-mono text-muted">
                 ID: {returnSession.idNumber}
               </p>
             </div>
@@ -267,49 +267,47 @@ export default function ReturnPage() {
               CANCEL
             </Button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm font-mono">
-              <thead>
-                <tr>
-                  <th className="border border-gray-100 bg-surface px-3 py-2 text-left">Item</th>
-                  <th className="border border-gray-100 bg-surface px-3 py-2 text-left">Details</th>
-                  <th className="border border-gray-100 bg-surface px-3 py-2 text-left">Return Location</th>
-                  <th className="border border-gray-100 bg-surface px-3 py-2 text-left">Borrowed</th>
-                  <th className="border border-gray-100 bg-surface px-3 py-2 text-left">Return Qty</th>
+          <table className="w-full border-collapse text-xs font-mono">
+            <thead>
+              <tr>
+                <th className="border border-gray-100 bg-surface px-2 py-1.5 text-left whitespace-nowrap">Item</th>
+                <th className="border border-gray-100 bg-surface px-2 py-1.5 text-left whitespace-nowrap">Details</th>
+                <th className="border border-gray-100 bg-surface px-2 py-1.5 text-left whitespace-nowrap">Return Loc</th>
+                <th className="border border-gray-100 bg-surface px-2 py-1.5 text-left whitespace-nowrap">Borrowed</th>
+                <th className="border border-gray-100 bg-surface px-2 py-1.5 text-left whitespace-nowrap">Return Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {returnSession.items.map((item, index) => (
+                <tr key={`${item.baseName}-${item.lenderUsername}-${index}`}>
+                  <td className="border border-gray-100 px-2 py-1.5 whitespace-nowrap">{item.baseName}</td>
+                  <td className="border border-gray-100 px-2 py-1.5 text-2xs text-muted whitespace-nowrap">
+                    {item.category || 'Uncategorized'} | {item.location || 'Unassigned'} | @{item.lenderUsername || profile?.username}
+                  </td>
+                  <td className="border border-gray-100 px-2 py-1.5 text-2xs text-muted whitespace-nowrap">
+                    {item.returnLocation || item.location || 'Unassigned'}
+                  </td>
+                  <td className="border border-gray-100 px-2 py-1.5 whitespace-nowrap">{item.totalBorrowed}</td>
+                  <td className="border border-gray-100 px-2 py-1.5 whitespace-nowrap">
+                    <input
+                      type="number"
+                      min={0}
+                      max={item.totalBorrowed}
+                      value={item.returnQty}
+                      onChange={event => updateReturnQty(index, parseInt(event.target.value, 10) || 0)}
+                      className="w-14 rounded border border-border px-1.5 py-0.5 text-xs"
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {returnSession.items.map((item, index) => (
-                  <tr key={`${item.baseName}-${item.lenderUsername}-${index}`}>
-                    <td className="border border-gray-100 px-3 py-2">{item.baseName}</td>
-                    <td className="border border-gray-100 px-3 py-2 text-xs text-muted">
-                      {item.category || 'Uncategorized'} | {item.location || 'Unassigned'} | Lender: @{item.lenderUsername || profile?.username}
-                    </td>
-                    <td className="border border-gray-100 px-3 py-2 text-xs text-muted">
-                      {item.returnLocation || item.location || 'Unassigned'}
-                    </td>
-                    <td className="border border-gray-100 px-3 py-2">{item.totalBorrowed}</td>
-                    <td className="border border-gray-100 px-3 py-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={item.totalBorrowed}
-                        value={item.returnQty}
-                        onChange={event => updateReturnQty(index, parseInt(event.target.value, 10) || 0)}
-                        className="w-20 rounded border border-border px-2 py-1"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
+              ))}
+            </tbody>
+          </table>
+          <div className="grid gap-3 md:grid-cols-2 mt-3">
             <PhotoInput label="Return Item Picture" value={returnItemPhoto} onChange={setReturnItemPhoto} />
             <PhotoInput label="Return Borrower Picture" value={borrowerReturnPhoto} onChange={setBorrowerReturnPhoto} />
           </div>
           <Button
-            className="mt-4"
+            className="mt-3"
             variant="success"
             fullWidth
             onClick={handleConfirmReturn}
@@ -319,6 +317,6 @@ export default function ReturnPage() {
           </Button>
         </Panel>
       )}
-    </>
+    </div>
   )
 }

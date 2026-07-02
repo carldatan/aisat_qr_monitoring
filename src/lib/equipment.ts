@@ -30,8 +30,6 @@ export interface InventoryGroup {
   name: string
   category: string
   location: string
-  status: EquipmentStatus
-  borrower: string
-  lender: string
   count: number
+  availableCount: number
 }

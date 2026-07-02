@@ -44,21 +44,18 @@ export default function InventoryPage() {
         e.base_name,
         e.category ?? '',
         e.location ?? '',
-        e.status,
-        e.borrower_name ?? '',
-        e.lender_username ?? '',
       ].join('|')
       const existing = map.get(key)
-      if (existing) existing.count++
-      else {
+      if (existing) {
+        existing.count++
+        if (e.status === 'Available') existing.availableCount++
+      } else {
         map.set(key, {
           name: e.base_name,
           category: e.category ?? '',
           location: e.location ?? '',
-          status: e.status,
-          borrower: e.borrower_name ?? '',
-          lender: e.lender_username ?? '',
           count: 1,
+          availableCount: e.status === 'Available' ? 1 : 0,
         })
       }
     })
@@ -93,6 +90,24 @@ export default function InventoryPage() {
     <>
       <Panel>
         <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
+          <ChartColumn className="h-5 w-5 text-primary" />
+          Inventory Overview
+        </h3>
+        <DataTable
+          columns={[
+            { header: 'Equipment', accessor: 'name' as keyof InventoryGroup },
+            { header: 'Category', accessor: 'category' as keyof InventoryGroup },
+            { header: 'Location', accessor: 'location' as keyof InventoryGroup },
+            { header: 'Total', accessor: 'count' as keyof InventoryGroup },
+            { header: 'Available', accessor: 'availableCount' as keyof InventoryGroup },
+          ]}
+          data={inventoryGroups}
+          emptyMessage="No equipment in inventory."
+        />
+      </Panel>
+
+      <Panel>
+        <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
           <Package2 className="h-5 w-5 text-primary" />
           Inventory Management
         </h3>
@@ -114,26 +129,6 @@ export default function InventoryPage() {
         <Button className="mt-4" fullWidth onClick={handleAddEquipment} disabled={addLoading}>
           {addLoading ? 'ADDING...' : 'ADD EQUIPMENT'}
         </Button>
-      </Panel>
-
-      <Panel>
-        <h3 className="mb-3 flex items-center gap-2 font-bold font-mono text-lg">
-          <ChartColumn className="h-5 w-5 text-primary" />
-          Inventory Overview
-        </h3>
-        <DataTable
-          columns={[
-            { header: 'Equipment', accessor: 'name' as keyof InventoryGroup },
-            { header: 'Category', accessor: 'category' as keyof InventoryGroup },
-            { header: 'Location', accessor: 'location' as keyof InventoryGroup },
-            { header: 'Status', accessor: 'status' as keyof InventoryGroup },
-            { header: 'Qty', accessor: 'count' as keyof InventoryGroup },
-            { header: 'Borrower', accessor: (row: InventoryGroup) => row.borrower || '--' },
-            { header: 'Lender', accessor: (row: InventoryGroup) => row.lender ? `@${row.lender}` : '--' },
-          ]}
-          data={inventoryGroups}
-          emptyMessage="No equipment in inventory."
-        />
       </Panel>
     </>
   )

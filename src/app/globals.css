@@ -24,7 +24,7 @@ html, body {
   background-attachment: fixed;
   color: #333333;
   overflow-x: hidden;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.6;
 }
 
@@ -47,7 +47,7 @@ body::before {
 
 #qr-reader__dashboard_section_csr button {
   font-family: 'Times New Roman', Times, serif;
-  font-size: 13px;
+  font-size: 15px;
   padding: 8px 16px;
   background: var(--primary);
   color: white;

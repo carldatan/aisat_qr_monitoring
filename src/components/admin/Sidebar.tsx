@@ -71,7 +71,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[220px] flex-col bg-[#3B5BFF]">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[220px] flex-col bg-[#3B5BFF] overflow-y-auto">
       <div className="flex items-center gap-3 px-5 pt-6 pb-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
           <Globe className="h-5 w-5 text-white" />

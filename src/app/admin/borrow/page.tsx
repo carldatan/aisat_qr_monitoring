@@ -26,6 +26,7 @@ export default function BorrowPage() {
   const loadPageData = useAppStore(s => s.loadPageData)
   const refreshAll = useAppStore(s => s.refreshAll)
 
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [borrowGroupKey, setBorrowGroupKey] = useState('')
   const [borrowQty, setBorrowQty] = useState('1')
   const [borrowerName, setBorrowerName] = useState('')
@@ -71,7 +72,17 @@ export default function BorrowPage() {
     return Array.from(map.values()).sort((a, b) => a.baseName.localeCompare(b.baseName))
   }, [equipment])
 
-  const selectedAvailable = availableGroups.find(group =>
+  const categories = useMemo(() => {
+    const set = new Set(availableGroups.map(g => g.category).filter(Boolean))
+    return Array.from(set).sort()
+  }, [availableGroups])
+
+  const filteredGroups = useMemo(() => {
+    if (!selectedCategory) return availableGroups
+    return availableGroups.filter(g => g.category === selectedCategory)
+  }, [availableGroups, selectedCategory])
+
+  const selectedAvailable = filteredGroups.find(group =>
     `${group.baseName}|${group.category}|${group.location}` === borrowGroupKey
   )
   useEffect(() => {
@@ -167,12 +178,27 @@ export default function BorrowPage() {
       <div className="grid gap-3 md:grid-cols-2">
         <div className="relative w-full">
           <select
+            value={selectedCategory}
+            onChange={event => {
+              setSelectedCategory(event.target.value)
+              setBorrowGroupKey('')
+            }}
+            className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-sm font-mono"
+          >
+            <option value="">All categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div className="relative w-full">
+          <select
             value={borrowGroupKey}
             onChange={event => setBorrowGroupKey(event.target.value)}
             className="w-full rounded border border-border bg-white px-3.5 py-3.5 text-sm font-mono"
           >
             <option value="">Select equipment</option>
-            {availableGroups.map(group => (
+            {filteredGroups.map(group => (
               <option
                 key={`${group.baseName}|${group.category}|${group.location}`}
                 value={`${group.baseName}|${group.category}|${group.location}`}
